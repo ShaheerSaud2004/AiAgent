@@ -1,30 +1,37 @@
 """
-Vercel serverless function entry point for FastAPI app.
-Creates a proper Lambda handler function for Vercel.
+Vercel serverless function entry point.
+Minimal handler to avoid Vercel runtime issues.
 """
 import sys
 import os
 
-# Add parent directory to path
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+# Add parent to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Set environment for Vercel
-os.environ.setdefault('PYTHONUNBUFFERED', '1')
-
-# Import Mangum and FastAPI app
+# Import dependencies
 from mangum import Mangum
-from main import app
 
-# Create Mangum handler
-mangum_handler = Mangum(app, lifespan="off")
+# Import app - do this last to catch any import errors
+try:
+    from main import app
+except Exception as e:
+    # Create minimal error app if import fails
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/")
+    async def error():
+        return {"error": f"Import failed: {str(e)}"}
 
-# Create a Lambda-compatible handler function
-# Vercel expects a function that takes (event, context)
+# Create handler - must be a function, not a class instance
+mangum_app = Mangum(app, lifespan="off")
+
 def handler(event, context):
-    """
-    Lambda handler function for Vercel.
-    This is the format Vercel's Python runtime expects.
-    """
-    return mangum_handler(event, context)
+    """Lambda handler - Vercel expects this exact signature."""
+    try:
+        return mangum_app(event, context)
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": f"Handler error: {str(e)}"
+        }
