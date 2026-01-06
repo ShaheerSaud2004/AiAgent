@@ -1,185 +1,187 @@
 """
 Database models and functions for storing call data and statistics.
-Uses SQLite for simple local storage.
+Uses PostgreSQL (Supabase) for persistent storage.
 """
 
-import aiosqlite
+import asyncpg
 import json
 from datetime import datetime
 from typing import Dict, List, Optional
 import os
 
-# Use environment variable for database path (Vercel uses /tmp for writable storage)
-import os
+# Get database URL from environment (Supabase connection string)
+DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
 
-# Vercel serverless functions use /tmp for writable storage
-# Check if we're on Vercel (has VERCEL env var)
-if os.getenv("VERCEL"):
-    DB_PATH = os.path.join("/tmp", "receptionist.db")
-else:
-    # Local development
-    DB_PATH = os.getenv("DATABASE_URL", "receptionist.db")
+# Connection pool (will be initialized on first use)
+_pool = None
 
+async def get_pool():
+    """Get or create database connection pool."""
+    global _pool
+    if _pool is None:
+        if not DATABASE_URL:
+            raise ValueError("DATABASE_URL or POSTGRES_URL environment variable must be set")
+        _pool = await asyncpg.create_pool(
+            DATABASE_URL,
+            min_size=1,
+            max_size=10,
+            command_timeout=60
+        )
+    return _pool
 
 async def init_db():
     """Initialize the database with required tables."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Organizations table (multi-tenancy)
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS organizations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                subdomain TEXT UNIQUE,
-                subscription_tier TEXT DEFAULT 'free',
-                stripe_customer_id TEXT,
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                subdomain VARCHAR(255) UNIQUE,
+                subscription_tier VARCHAR(50) DEFAULT 'free',
+                stripe_customer_id VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
         # Users table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
                 organization_id INTEGER,
-                role TEXT DEFAULT 'admin',
-                full_name TEXT,
-                is_active BOOLEAN DEFAULT 1,
+                role VARCHAR(50) DEFAULT 'admin',
+                full_name VARCHAR(255),
+                is_active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (organization_id) REFERENCES organizations(id)
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
             )
         """)
         
         # Businesses table (now with organization_id)
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS businesses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 organization_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                type TEXT NOT NULL,
-                is_active BOOLEAN DEFAULT 0,
+                name VARCHAR(255) NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                is_active BOOLEAN DEFAULT false,
                 greeting TEXT,
-                assistant_name TEXT,
+                assistant_name VARCHAR(100),
                 system_prompt TEXT,
                 menu_reference TEXT,
-                phone_number TEXT,
-                email TEXT,
+                phone_number VARCHAR(50),
+                email VARCHAR(255),
                 address TEXT,
                 config_json TEXT,
-                voice TEXT DEFAULT 'Polly.Matthew-Neural',
+                voice VARCHAR(100) DEFAULT 'Polly.Matthew-Neural',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (organization_id) REFERENCES organizations(id)
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
             )
         """)
         
         # Calls table (now with organization_id)
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS calls (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                call_sid TEXT UNIQUE NOT NULL,
-                caller_phone TEXT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                call_sid VARCHAR(255) UNIQUE NOT NULL,
+                caller_phone VARCHAR(50) NOT NULL,
                 organization_id INTEGER NOT NULL,
                 business_id INTEGER,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,
                 duration_seconds INTEGER,
-                is_emergency BOOLEAN DEFAULT 0,
-                status TEXT DEFAULT 'completed',
+                is_emergency BOOLEAN DEFAULT false,
+                status VARCHAR(50) DEFAULT 'completed',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (organization_id) REFERENCES organizations(id),
-                FOREIGN KEY (business_id) REFERENCES businesses(id)
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+                FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE SET NULL
             )
         """)
         
         # Conversations table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS conversations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                call_sid TEXT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                call_sid VARCHAR(255) NOT NULL,
                 user_input TEXT,
                 assistant_response TEXT,
                 turn_number INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (call_sid) REFERENCES calls(call_sid)
+                FOREIGN KEY (call_sid) REFERENCES calls(call_sid) ON DELETE CASCADE
             )
         """)
         
         # Appointments table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS appointments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                call_sid TEXT NOT NULL,
-                caller_phone TEXT NOT NULL,
-                patient_status TEXT,
+                id SERIAL PRIMARY KEY,
+                call_sid VARCHAR(255) NOT NULL,
+                caller_phone VARCHAR(50) NOT NULL,
+                patient_status VARCHAR(50),
                 reason TEXT,
-                insurance TEXT,
-                preferred_time TEXT,
-                caller_name TEXT,
-                is_emergency BOOLEAN DEFAULT 0,
-                booking_status TEXT DEFAULT 'pending',
+                insurance VARCHAR(255),
+                preferred_time VARCHAR(255),
+                caller_name VARCHAR(255),
+                is_emergency BOOLEAN DEFAULT false,
+                booking_status VARCHAR(50) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (call_sid) REFERENCES calls(call_sid)
+                FOREIGN KEY (call_sid) REFERENCES calls(call_sid) ON DELETE CASCADE
             )
         """)
         
         # Orders table (now with organization_id)
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                call_sid TEXT NOT NULL,
+                id SERIAL PRIMARY KEY,
+                call_sid VARCHAR(255) NOT NULL,
                 organization_id INTEGER NOT NULL,
-                caller_phone TEXT NOT NULL,
-                customer_name TEXT,
+                caller_phone VARCHAR(50) NOT NULL,
+                customer_name VARCHAR(255),
                 items TEXT,
-                order_type TEXT,
+                order_type VARCHAR(50),
                 delivery_address TEXT,
-                pickup_name TEXT,
-                phone_number TEXT,
+                pickup_name VARCHAR(255),
+                phone_number VARCHAR(50),
                 special_instructions TEXT,
-                payment_method TEXT,
-                total_estimate TEXT,
-                order_status TEXT DEFAULT 'pending',
+                payment_method VARCHAR(50),
+                total_estimate VARCHAR(50),
+                order_status VARCHAR(50) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (organization_id) REFERENCES organizations(id),
-                FOREIGN KEY (call_sid) REFERENCES calls(call_sid)
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+                FOREIGN KEY (call_sid) REFERENCES calls(call_sid) ON DELETE CASCADE
             )
         """)
         
-        # Add organization_id to existing tables if they don't have it
+        # Add organization_id to existing tables if they don't have it (migration)
         try:
-            await db.execute("ALTER TABLE businesses ADD COLUMN organization_id INTEGER")
+            await conn.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS organization_id INTEGER")
         except:
             pass
         
         try:
-            await db.execute("ALTER TABLE calls ADD COLUMN organization_id INTEGER")
+            await conn.execute("ALTER TABLE calls ADD COLUMN IF NOT EXISTS organization_id INTEGER")
         except:
             pass
         
         try:
-            await db.execute("ALTER TABLE orders ADD COLUMN organization_id INTEGER")
+            await conn.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS organization_id INTEGER")
         except:
             pass
-        
-        await db.commit()
         
         # Add voice column if it doesn't exist (for existing databases)
         try:
-            await db.execute("ALTER TABLE businesses ADD COLUMN voice TEXT DEFAULT 'Polly.Matthew-Neural'")
-            await db.commit()
+            await conn.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS voice VARCHAR(100) DEFAULT 'Polly.Matthew-Neural'")
         except Exception as e:
             pass  # Column already exists or other error
         
         # Update existing businesses to have voice if null
-        try:
-            await db.execute("UPDATE businesses SET voice = 'Polly.Matthew-Neural' WHERE voice IS NULL OR voice = ''")
-            await db.commit()
-        except:
-            pass
+        await conn.execute("UPDATE businesses SET voice = 'Polly.Matthew-Neural' WHERE voice IS NULL OR voice = ''")
         
         # Initialize default businesses if they don't exist (legacy - for existing data)
         await init_default_businesses()
@@ -190,10 +192,10 @@ async def init_db():
 
 async def init_default_businesses():
     """Initialize default business configurations."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Check if businesses exist
-        async with db.execute("SELECT COUNT(*) as count FROM businesses") as cursor:
-            count = (await cursor.fetchone())[0]
+        count = await conn.fetchval("SELECT COUNT(*) FROM businesses")
         
         if count == 0:
             # Load menu reference for pizza
@@ -218,24 +220,23 @@ FLOW: Greet → Listen → Ask missing info → Confirm order → Thank.
 If item in MENU, it exists. Match menu names exactly."""
             
             # Get default organization for legacy businesses
-            async with db.execute("SELECT id FROM organizations LIMIT 1") as cursor:
-                default_org = await cursor.fetchone()
-                default_org_id = default_org[0] if default_org else None
+            default_org_id = await conn.fetchval("SELECT id FROM organizations LIMIT 1")
             
             if not default_org_id:
                 # Create default organization
-                cursor = await db.execute("INSERT INTO organizations (name, subdomain) VALUES (?, ?)", ("Default Organization", "default"))
-                default_org_id = cursor.lastrowid
-                await db.commit()
+                default_org_id = await conn.fetchval(
+                    "INSERT INTO organizations (name, subdomain) VALUES ($1, $2) RETURNING id",
+                    "Default Organization", "default"
+                )
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, menu_reference, phone_number, email, address, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             """, (
                 default_org_id,
                 "Nunzio's Pizza",
                 "pizza",
-                1,  # Active by default
+                True,  # Active by default
                 "Thank you for calling Nunzio's Pizza! This is John. How can I help you today?",
                 "John",
                 pizza_prompt,
@@ -257,14 +258,14 @@ EMERGENCY: If severe pain, bleeding, swelling, infection, urgent - say "This sou
 
 FLOW: Greet → Ask questions → Confirm → "Perfect! Our office will call you back within 24 hours to confirm." → End."""
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, phone_number, email, address, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             """, (
                 default_org_id,
                 "Medical Office",
                 "doctor",
-                0,
+                False,
                 "Thank you for calling our medical office. This is Sarah. How can I help you today?",
                 "Sarah",
                 doctor_prompt,
@@ -285,14 +286,14 @@ EMERGENCY: If severe pain, bleeding, swelling, infection, urgent - say "This sou
 
 FLOW: Greet → Ask questions → Confirm → "Perfect! Our office will call you back within 24 hours to confirm." → End."""
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, phone_number, email, address, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             """, (
                 default_org_id,
                 "Dental Office",
                 "dentist",
-                0,
+                False,
                 "Thank you for calling our dental office. This is Sarah. How can I help you today?",
                 "Sarah",
                 dentist_prompt,
@@ -311,14 +312,14 @@ COLLECT: Items (coffee, food) → Size/type → Delivery/pickup → Address/name
 
 FLOW: Greet → Listen → Ask missing info → Confirm order → Thank."""
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, phone_number, email, address, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             """, (
                 default_org_id,
                 "Cafe",
                 "cafe",
-                0,
+                False,
                 "Thank you for calling! This is Alex. How can I help you today?",
                 "Alex",
                 cafe_prompt,
@@ -337,14 +338,14 @@ COLLECT: Items (bagels, cream cheese, sandwiches) → Type/qty → Delivery/pick
 
 FLOW: Greet → Listen → Ask missing info → Confirm order → Thank."""
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, phone_number, email, address, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             """, (
                 default_org_id,
                 "Bagel Shop",
                 "bagel",
-                0,
+                False,
                 "Thank you for calling! This is Sam. How can I help you today?",
                 "Sam",
                 bagel_prompt,
@@ -353,19 +354,17 @@ FLOW: Greet → Listen → Ask missing info → Confirm order → Thank."""
                 "",
                 "Polly.Matthew-Neural"
             ))
-            
-            await db.commit()
 
 
 async def init_default_businesses_for_org(organization_id: int):
     """Initialize default businesses for a new organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Check if businesses exist for this org
-        async with db.execute(
-            "SELECT COUNT(*) as count FROM businesses WHERE organization_id = ?",
-            (organization_id,)
-        ) as cursor:
-            count = (await cursor.fetchone())[0]
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM businesses WHERE organization_id = $1",
+            organization_id
+        )
         
         if count == 0:
             # Create a default pizza business
@@ -377,107 +376,112 @@ COLLECT: Items (pizza, size, qty) → Delivery/pickup → Address/name → Confi
 
 FLOW: Greet → Listen → Ask missing info → Confirm order → Thank."""
             
-            await db.execute("""
+            await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, voice)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             """, (
                 organization_id,
                 "My Business",
                 "pizza",
-                1,
+                True,
                 "Thank you for calling! This is John. How can I help you today?",
                 "John",
                 pizza_prompt,
                 "Polly.Matthew-Neural"
             ))
-            await db.commit()
 
 
 async def migrate_existing_data_to_org():
     """Migrate existing data to a default organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Check if default org exists
-        async with db.execute(
+        org = await conn.fetchrow(
             "SELECT id FROM organizations WHERE name = 'Default Organization' LIMIT 1"
-        ) as cursor:
-            org = await cursor.fetchone()
+        )
         
         if not org:
             # Create default org
-            cursor = await db.execute(
-                "INSERT INTO organizations (name, subdomain) VALUES (?, ?)",
-                ("Default Organization", "default")
+            default_org_id = await conn.fetchval(
+                "INSERT INTO organizations (name, subdomain) VALUES ($1, $2) RETURNING id",
+                "Default Organization", "default"
             )
-            default_org_id = cursor.lastrowid
-            await db.commit()
             
             # Update existing businesses
-            await db.execute(
-                "UPDATE businesses SET organization_id = ? WHERE organization_id IS NULL",
-                (default_org_id,)
+            await conn.execute(
+                "UPDATE businesses SET organization_id = $1 WHERE organization_id IS NULL",
+                default_org_id
             )
             
             # Update existing calls
-            await db.execute(
-                "UPDATE calls SET organization_id = ? WHERE organization_id IS NULL",
-                (default_org_id,)
+            await conn.execute(
+                "UPDATE calls SET organization_id = $1 WHERE organization_id IS NULL",
+                default_org_id
             )
             
             # Update existing orders
-            await db.execute(
-                "UPDATE orders SET organization_id = ? WHERE organization_id IS NULL",
-                (default_org_id,)
+            await conn.execute(
+                "UPDATE orders SET organization_id = $1 WHERE organization_id IS NULL",
+                default_org_id
             )
-            
-            await db.commit()
 
 
 async def save_call_start(call_sid: str, caller_phone: str, organization_id: int = None) -> int:
     """Save call start and return call ID."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         if organization_id:
-            cursor = await db.execute("""
-                INSERT OR IGNORE INTO calls (call_sid, caller_phone, organization_id, start_time)
-                VALUES (?, ?, ?, ?)
-            """, (call_sid, caller_phone, organization_id, datetime.now()))
+            call_id = await conn.fetchval("""
+                INSERT INTO calls (call_sid, caller_phone, organization_id, start_time)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (call_sid) DO NOTHING
+                RETURNING id
+            """, call_sid, caller_phone, organization_id, datetime.now())
         else:
-            cursor = await db.execute("""
-                INSERT OR IGNORE INTO calls (call_sid, caller_phone, start_time)
-                VALUES (?, ?, ?)
-            """, (call_sid, caller_phone, datetime.now()))
-        await db.commit()
-        return cursor.lastrowid
+            call_id = await conn.fetchval("""
+                INSERT INTO calls (call_sid, caller_phone, start_time)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (call_sid) DO NOTHING
+                RETURNING id
+            """, call_sid, caller_phone, datetime.now())
+        
+        # If conflict, get existing ID
+        if not call_id:
+            call_id = await conn.fetchval("SELECT id FROM calls WHERE call_sid = $1", call_sid)
+        
+        return call_id
 
 
 async def save_call_end(call_sid: str, duration_seconds: int = None):
     """Update call with end time and duration."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             UPDATE calls 
-            SET end_time = ?, duration_seconds = ?
-            WHERE call_sid = ?
-        """, (datetime.now(), duration_seconds, call_sid))
-        await db.commit()
+            SET end_time = $1, duration_seconds = $2
+            WHERE call_sid = $3
+        """, datetime.now(), duration_seconds, call_sid)
 
 
 async def save_conversation_turn(call_sid: str, user_input: str, assistant_response: str, turn_number: int):
     """Save a conversation turn."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             INSERT INTO conversations (call_sid, user_input, assistant_response, turn_number)
-            VALUES (?, ?, ?, ?)
-        """, (call_sid, user_input, assistant_response, turn_number))
-        await db.commit()
+            VALUES ($1, $2, $3, $4)
+        """, call_sid, user_input, assistant_response, turn_number)
 
 
 async def save_appointment(call_sid: str, caller_phone: str, appointment_info: Dict):
     """Save appointment information."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             INSERT INTO appointments (
                 call_sid, caller_phone, patient_status, reason, insurance,
                 preferred_time, caller_name, is_emergency
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         """, (
             call_sid,
             caller_phone,
@@ -488,12 +492,12 @@ async def save_appointment(call_sid: str, caller_phone: str, appointment_info: D
             appointment_info.get("caller_name"),
             appointment_info.get("emergency", False)
         ))
-        await db.commit()
 
 
 async def save_order(call_sid: str, caller_phone: str, order_info: Dict, organization_id: int = None) -> int:
     """Save order information to database."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Convert items list to JSON string if it's a list
         items_value = order_info.get("items")
         if isinstance(items_value, list):
@@ -503,12 +507,13 @@ async def save_order(call_sid: str, caller_phone: str, order_info: Dict, organiz
         else:
             items_value = str(items_value)
         
-        cursor = await db.execute("""
+        order_id = await conn.fetchval("""
             INSERT INTO orders (
                 call_sid, caller_phone, customer_name, items, order_type,
                 delivery_address, pickup_name, phone_number, special_instructions,
-                payment_method, total_estimate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                payment_method, total_estimate, organization_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id
         """, (
             call_sid,
             caller_phone,
@@ -520,26 +525,26 @@ async def save_order(call_sid: str, caller_phone: str, order_info: Dict, organiz
             order_info.get("phone_number"),
             order_info.get("special_instructions"),
             order_info.get("payment_method"),
-            order_info.get("total_estimate")
+            order_info.get("total_estimate"),
+            organization_id
         ))
-        await db.commit()
-        return cursor.lastrowid
+        return order_id
 
 
 async def mark_call_emergency(call_sid: str):
     """Mark a call as emergency."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            UPDATE calls SET is_emergency = 1 WHERE call_sid = ?
-        """, (call_sid,))
-        await db.commit()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE calls SET is_emergency = true WHERE call_sid = $1
+        """, call_sid)
 
 
 async def get_recent_calls(limit: int = 50) -> List[Dict]:
     """Get recent calls with full details."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
             SELECT c.*, 
                    COUNT(DISTINCT conv.id) as conversation_turns,
                    a.id as appointment_id,
@@ -547,169 +552,150 @@ async def get_recent_calls(limit: int = 50) -> List[Dict]:
             FROM calls c
             LEFT JOIN conversations conv ON c.call_sid = conv.call_sid
             LEFT JOIN appointments a ON c.call_sid = a.call_sid
-            GROUP BY c.id
+            GROUP BY c.id, a.id
             ORDER BY c.start_time DESC
-            LIMIT ?
-        """, (limit,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+            LIMIT $1
+        """, limit)
+        return [dict(row) for row in rows]
 
 
 async def get_call_details(call_sid: str) -> Optional[Dict]:
     """Get full details of a specific call."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Get call info
-        async with db.execute("""
-            SELECT * FROM calls WHERE call_sid = ?
-        """, (call_sid,)) as cursor:
-            call = await cursor.fetchone()
-            if not call:
-                return None
-            
-            call_dict = dict(call)
-            
-            # Get conversation
-            async with db.execute("""
-                SELECT * FROM conversations 
-                WHERE call_sid = ? 
-                ORDER BY turn_number
-            """, (call_sid,)) as cursor:
-                conversations = await cursor.fetchall()
-                call_dict["conversation"] = [dict(conv) for conv in conversations]
-            
-            # Get appointment
-            async with db.execute("""
-                SELECT * FROM appointments WHERE call_sid = ?
-            """, (call_sid,)) as cursor:
-                appointment = await cursor.fetchone()
-                call_dict["appointment"] = dict(appointment) if appointment else None
-            
-            return call_dict
+        call = await conn.fetchrow("SELECT * FROM calls WHERE call_sid = $1", call_sid)
+        if not call:
+            return None
+        
+        call_dict = dict(call)
+        
+        # Get conversation
+        conversations = await conn.fetch("""
+            SELECT * FROM conversations 
+            WHERE call_sid = $1 
+            ORDER BY turn_number
+        """, call_sid)
+        call_dict["conversation"] = [dict(conv) for conv in conversations]
+        
+        # Get appointment
+        appointment = await conn.fetchrow("SELECT * FROM appointments WHERE call_sid = $1", call_sid)
+        call_dict["appointment"] = dict(appointment) if appointment else None
+        
+        return call_dict
 
 
 async def get_statistics() -> Dict:
     """Get dashboard statistics."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         stats = {}
         
         # Total calls
-        async with db.execute("SELECT COUNT(*) as count FROM calls") as cursor:
-            stats["total_calls"] = (await cursor.fetchone())[0]
+        stats["total_calls"] = await conn.fetchval("SELECT COUNT(*) FROM calls")
         
         # Emergency calls
-        async with db.execute("SELECT COUNT(*) as count FROM calls WHERE is_emergency = 1") as cursor:
-            stats["emergency_calls"] = (await cursor.fetchone())[0]
+        stats["emergency_calls"] = await conn.fetchval("SELECT COUNT(*) FROM calls WHERE is_emergency = true")
         
         # Appointments booked
-        async with db.execute("SELECT COUNT(*) as count FROM appointments") as cursor:
-            stats["appointments_booked"] = (await cursor.fetchone())[0]
+        stats["appointments_booked"] = await conn.fetchval("SELECT COUNT(*) FROM appointments")
         
         # Calls today
-        async with db.execute("""
-            SELECT COUNT(*) as count FROM calls 
-            WHERE DATE(start_time) = DATE('now')
-        """) as cursor:
-            stats["calls_today"] = (await cursor.fetchone())[0]
+        stats["calls_today"] = await conn.fetchval("""
+            SELECT COUNT(*) FROM calls 
+            WHERE DATE(start_time) = CURRENT_DATE
+        """)
         
         # Average call duration
-        async with db.execute("""
-            SELECT AVG(duration_seconds) as avg FROM calls 
+        avg_duration = await conn.fetchval("""
+            SELECT AVG(duration_seconds) FROM calls 
             WHERE duration_seconds IS NOT NULL
-        """) as cursor:
-            avg_duration = (await cursor.fetchone())[0]
-            stats["avg_call_duration"] = int(avg_duration) if avg_duration else 0
+        """)
+        stats["avg_call_duration"] = int(avg_duration) if avg_duration else 0
         
         # Calls this week
-        async with db.execute("""
-            SELECT COUNT(*) as count FROM calls 
-            WHERE start_time >= datetime('now', '-7 days')
-        """) as cursor:
-            stats["calls_this_week"] = (await cursor.fetchone())[0]
+        stats["calls_this_week"] = await conn.fetchval("""
+            SELECT COUNT(*) FROM calls 
+            WHERE start_time >= NOW() - INTERVAL '7 days'
+        """)
         
         # New vs existing patients
-        async with db.execute("""
+        row = await conn.fetchrow("""
             SELECT 
                 SUM(CASE WHEN patient_status = 'new' THEN 1 ELSE 0 END) as new_patients,
                 SUM(CASE WHEN patient_status = 'existing' THEN 1 ELSE 0 END) as existing_patients
             FROM appointments
-        """) as cursor:
-            row = await cursor.fetchone()
-            stats["new_patients"] = row[0] or 0
-            stats["existing_patients"] = row[1] or 0
+        """)
+        stats["new_patients"] = row['new_patients'] or 0 if row else 0
+        stats["existing_patients"] = row['existing_patients'] or 0 if row else 0
         
         return stats
 
 
 async def get_appointments(limit: int = 50) -> List[Dict]:
     """Get all appointments."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
             SELECT a.*, c.start_time, c.duration_seconds
             FROM appointments a
             LEFT JOIN calls c ON a.call_sid = c.call_sid
             ORDER BY a.created_at DESC
-            LIMIT ?
-        """, (limit,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+            LIMIT $1
+        """, limit)
+        return [dict(row) for row in rows]
 
 
 async def update_appointment_status(appointment_id: int, status: str):
     """Update appointment booking status."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             UPDATE appointments 
-            SET booking_status = ?
-            WHERE id = ?
-        """, (status, appointment_id))
-        await db.commit()
+            SET booking_status = $1
+            WHERE id = $2
+        """, status, appointment_id)
 
 
 async def get_chart_data(days: int = 30) -> Dict:
     """Get data for charts - daily calls, appointments, etc."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # Daily calls for last N days
-        async with db.execute("""
+        daily_calls = await conn.fetch("""
             SELECT 
                 DATE(start_time) as date,
                 COUNT(*) as count,
-                SUM(CASE WHEN is_emergency = 1 THEN 1 ELSE 0 END) as emergencies
+                SUM(CASE WHEN is_emergency = true THEN 1 ELSE 0 END) as emergencies
             FROM calls
-            WHERE start_time >= datetime('now', '-' || ? || ' days')
+            WHERE start_time >= NOW() - INTERVAL '%s days'
             GROUP BY DATE(start_time)
             ORDER BY date ASC
-        """, (days,)) as cursor:
-            daily_calls = await cursor.fetchall()
+        """ % days)
         
         # Daily appointments
-        async with db.execute("""
+        daily_appointments = await conn.fetch("""
             SELECT 
                 DATE(created_at) as date,
                 COUNT(*) as count
             FROM appointments
-            WHERE created_at >= datetime('now', '-' || ? || ' days')
+            WHERE created_at >= NOW() - INTERVAL '%s days'
             GROUP BY DATE(created_at)
             ORDER BY date ASC
-        """, (days,)) as cursor:
-            daily_appointments = await cursor.fetchall()
+        """ % days)
         
         return {
-            "daily_calls": [{"date": row["date"], "count": row["count"], "emergencies": row["emergencies"]} for row in daily_calls],
-            "daily_appointments": [{"date": row["date"], "count": row["count"]} for row in daily_appointments]
+            "daily_calls": [{"date": str(row["date"]), "count": row["count"], "emergencies": row["emergencies"]} for row in daily_calls],
+            "daily_appointments": [{"date": str(row["date"]), "count": row["count"]} for row in daily_appointments]
         }
 
 
 async def search_calls(query: str, limit: int = 50) -> List[Dict]:
     """Search calls by caller phone or call SID."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         search_term = f"%{query}%"
-        async with db.execute("""
+        rows = await conn.fetch("""
             SELECT c.*, 
                    COUNT(DISTINCT conv.id) as conversation_turns,
                    a.id as appointment_id,
@@ -717,40 +703,38 @@ async def search_calls(query: str, limit: int = 50) -> List[Dict]:
             FROM calls c
             LEFT JOIN conversations conv ON c.call_sid = conv.call_sid
             LEFT JOIN appointments a ON c.call_sid = a.call_sid
-            WHERE c.caller_phone LIKE ? OR c.call_sid LIKE ?
-            GROUP BY c.id
+            WHERE c.caller_phone LIKE $1 OR c.call_sid LIKE $1
+            GROUP BY c.id, a.id
             ORDER BY c.start_time DESC
-            LIMIT ?
-        """, (search_term, search_term, limit)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+            LIMIT $2
+        """, search_term, limit)
+        return [dict(row) for row in rows]
 
 
 async def search_appointments(query: str, limit: int = 50) -> List[Dict]:
     """Search appointments by caller phone, reason, or insurance."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         search_term = f"%{query}%"
-        async with db.execute("""
+        rows = await conn.fetch("""
             SELECT a.*, c.start_time, c.duration_seconds
             FROM appointments a
             LEFT JOIN calls c ON a.call_sid = c.call_sid
-            WHERE a.caller_phone LIKE ? 
-               OR a.reason LIKE ? 
-               OR a.insurance LIKE ?
-               OR a.caller_name LIKE ?
+            WHERE a.caller_phone LIKE $1 
+               OR a.reason LIKE $1 
+               OR a.insurance LIKE $1
+               OR a.caller_name LIKE $1
             ORDER BY a.created_at DESC
-            LIMIT ?
-        """, (search_term, search_term, search_term, search_term, limit)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+            LIMIT $2
+        """, search_term, limit)
+        return [dict(row) for row in rows]
 
 
 async def get_all_calls_for_export() -> List[Dict]:
     """Get all calls for CSV export."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
             SELECT c.*, 
                    COUNT(DISTINCT conv.id) as conversation_turns,
                    a.id as appointment_id,
@@ -758,238 +742,227 @@ async def get_all_calls_for_export() -> List[Dict]:
             FROM calls c
             LEFT JOIN conversations conv ON c.call_sid = conv.call_sid
             LEFT JOIN appointments a ON c.call_sid = a.call_sid
-            GROUP BY c.id
+            GROUP BY c.id, a.id
             ORDER BY c.start_time DESC
-        """) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        """)
+        return [dict(row) for row in rows]
 
 
 async def get_all_appointments_for_export() -> List[Dict]:
     """Get all appointments for CSV export."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
             SELECT a.*, c.start_time, c.duration_seconds
             FROM appointments a
             LEFT JOIN calls c ON a.call_sid = c.call_sid
             ORDER BY a.created_at DESC
-        """) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        """)
+        return [dict(row) for row in rows]
 
 
 # ==================== ORDER FUNCTIONS ====================
 
 async def get_orders(limit: int = 50, status: Optional[str] = None, order_type: Optional[str] = None) -> List[Dict]:
     """Get orders with optional filtering."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         query = "SELECT * FROM orders WHERE 1=1"
         params = []
+        param_num = 1
         
         if status:
-            query += " AND order_status = ?"
+            query += f" AND order_status = ${param_num}"
             params.append(status)
+            param_num += 1
         
         if order_type:
-            query += " AND order_type = ?"
+            query += f" AND order_type = ${param_num}"
             params.append(order_type)
+            param_num += 1
         
-        query += " ORDER BY created_at DESC LIMIT ?"
+        query += f" ORDER BY created_at DESC LIMIT ${param_num}"
         params.append(limit)
         
-        async with db.execute(query, params) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        rows = await conn.fetch(query, *params)
+        return [dict(row) for row in rows]
 
 
 async def get_order(order_id: int) -> Optional[Dict]:
     """Get a specific order by ID."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
+        return dict(row) if row else None
 
 
 async def update_order_status(order_id: int, status: str):
     """Update order status."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             UPDATE orders 
-            SET order_status = ?
-            WHERE id = ?
-        """, (status, order_id))
-        await db.commit()
+            SET order_status = $1
+            WHERE id = $2
+        """, status, order_id)
 
 
 async def get_order_statistics() -> Dict:
     """Get order statistics."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         stats = {}
         
         # Total orders
-        async with db.execute("SELECT COUNT(*) as count FROM orders") as cursor:
-            stats["total_orders"] = (await cursor.fetchone())[0]
+        stats["total_orders"] = await conn.fetchval("SELECT COUNT(*) FROM orders")
         
         # Orders today
-        async with db.execute("""
-            SELECT COUNT(*) as count FROM orders 
-            WHERE DATE(created_at) = DATE('now')
-        """) as cursor:
-            stats["orders_today"] = (await cursor.fetchone())[0]
+        stats["orders_today"] = await conn.fetchval("""
+            SELECT COUNT(*) FROM orders 
+            WHERE DATE(created_at) = CURRENT_DATE
+        """)
         
         # Orders by status
-        async with db.execute("""
+        rows = await conn.fetch("""
             SELECT order_status, COUNT(*) as count 
             FROM orders 
             GROUP BY order_status
-        """) as cursor:
-            status_counts = {}
-            for row in await cursor.fetchall():
-                status_counts[row[0] or "pending"] = row[1]
-            stats["orders_by_status"] = status_counts
+        """)
+        status_counts = {}
+        for row in rows:
+            status_counts[row['order_status'] or "pending"] = row['count']
+        stats["orders_by_status"] = status_counts
         
         # Orders by type
-        async with db.execute("""
+        rows = await conn.fetch("""
             SELECT order_type, COUNT(*) as count 
             FROM orders 
             WHERE order_type IS NOT NULL
             GROUP BY order_type
-        """) as cursor:
-            type_counts = {}
-            for row in await cursor.fetchall():
-                type_counts[row[0]] = row[1]
-            stats["orders_by_type"] = type_counts
+        """)
+        type_counts = {}
+        for row in rows:
+            type_counts[row['order_type']] = row['count']
+        stats["orders_by_type"] = type_counts
         
         # Orders this week
-        async with db.execute("""
-            SELECT COUNT(*) as count FROM orders 
-            WHERE created_at >= datetime('now', '-7 days')
-        """) as cursor:
-            stats["orders_this_week"] = (await cursor.fetchone())[0]
+        stats["orders_this_week"] = await conn.fetchval("""
+            SELECT COUNT(*) FROM orders 
+            WHERE created_at >= NOW() - INTERVAL '7 days'
+        """)
         
         return stats
 
 
 async def search_orders(query: str, limit: int = 50) -> List[Dict]:
     """Search orders by phone, name, or items."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         search_term = f"%{query}%"
-        async with db.execute("""
+        rows = await conn.fetch("""
             SELECT * FROM orders 
-            WHERE caller_phone LIKE ? 
-               OR customer_name LIKE ?
-               OR pickup_name LIKE ?
-               OR items LIKE ?
+            WHERE caller_phone LIKE $1 
+               OR customer_name LIKE $1
+               OR pickup_name LIKE $1
+               OR items LIKE $1
             ORDER BY created_at DESC
-            LIMIT ?
-        """, (search_term, search_term, search_term, search_term, limit)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+            LIMIT $2
+        """, search_term, limit)
+        return [dict(row) for row in rows]
 
 
 # Business management functions
 async def get_active_business(organization_id: int = None) -> Optional[Dict]:
     """Get the currently active business for an organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         if organization_id:
-            async with db.execute("""
-                SELECT * FROM businesses WHERE is_active = 1 AND organization_id = ? LIMIT 1
-            """, (organization_id,)) as cursor:
-                business = await cursor.fetchone()
-                return dict(business) if business else None
+            business = await conn.fetchrow("""
+                SELECT * FROM businesses WHERE is_active = true AND organization_id = $1 LIMIT 1
+            """, organization_id)
         else:
-            async with db.execute("""
-                SELECT * FROM businesses WHERE is_active = 1 LIMIT 1
-            """) as cursor:
-                business = await cursor.fetchone()
-                return dict(business) if business else None
+            business = await conn.fetchrow("""
+                SELECT * FROM businesses WHERE is_active = true LIMIT 1
+            """)
+        return dict(business) if business else None
 
 
 async def get_all_businesses(organization_id: int = None) -> List[Dict]:
     """Get all businesses for an organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         if organization_id:
-            async with db.execute("""
-                SELECT * FROM businesses WHERE organization_id = ? ORDER BY is_active DESC, name ASC
-            """, (organization_id,)) as cursor:
-                rows = await cursor.fetchall()
-                return [dict(row) for row in rows]
+            rows = await conn.fetch("""
+                SELECT * FROM businesses WHERE organization_id = $1 ORDER BY is_active DESC, name ASC
+            """, organization_id)
         else:
-            async with db.execute("""
+            rows = await conn.fetch("""
                 SELECT * FROM businesses ORDER BY is_active DESC, name ASC
-            """) as cursor:
-                rows = await cursor.fetchall()
-                return [dict(row) for row in rows]
+            """)
+        return [dict(row) for row in rows]
 
 
 async def set_active_business(business_id: int, organization_id: int = None):
     """Set a business as active (deactivates all others in organization)."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         if organization_id:
             # Deactivate all in organization
-            await db.execute("UPDATE businesses SET is_active = 0 WHERE organization_id = ?", (organization_id,))
+            await conn.execute("UPDATE businesses SET is_active = false WHERE organization_id = $1", organization_id)
             # Activate selected
-            await db.execute("UPDATE businesses SET is_active = 1 WHERE id = ? AND organization_id = ?", (business_id, organization_id))
+            await conn.execute("UPDATE businesses SET is_active = true WHERE id = $1 AND organization_id = $2", business_id, organization_id)
         else:
             # Deactivate all (legacy)
-            await db.execute("UPDATE businesses SET is_active = 0")
+            await conn.execute("UPDATE businesses SET is_active = false")
             # Activate selected
-            await db.execute("UPDATE businesses SET is_active = 1 WHERE id = ?", (business_id,))
-        await db.commit()
+            await conn.execute("UPDATE businesses SET is_active = true WHERE id = $1", business_id)
 
 
 async def update_business(business_id: int, updates: Dict):
     """Update business configuration."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         fields = []
         values = []
+        param_num = 1
         for key, value in updates.items():
             if key in ['name', 'type', 'greeting', 'assistant_name', 'system_prompt', 
-                      'menu_reference', 'phone_number', 'email', 'address', 'config_json']:
-                fields.append(f"{key} = ?")
+                      'menu_reference', 'phone_number', 'email', 'address', 'config_json', 'voice']:
+                fields.append(f"{key} = ${param_num}")
                 values.append(value)
+                param_num += 1
         
         if fields:
             values.append(business_id)
-            await db.execute(f"""
+            await conn.execute(f"""
                 UPDATE businesses 
                 SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, values)
-            await db.commit()
+                WHERE id = ${param_num}
+            """, *values)
 
 
 async def get_business(business_id: int) -> Optional[Dict]:
     """Get a specific business."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM businesses WHERE id = ?", (business_id,)) as cursor:
-            business = await cursor.fetchone()
-            return dict(business) if business else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        business = await conn.fetchrow("SELECT * FROM businesses WHERE id = $1", business_id)
+        return dict(business) if business else None
 
 
 async def delete_business(business_id: int):
     """Delete a business."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM businesses WHERE id = ?", (business_id,))
-        await db.commit()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM businesses WHERE id = $1", business_id)
 
 
 async def delete_businesses_by_assistant_name(assistant_name: str):
     """Delete all businesses with a specific assistant name."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         # First, deactivate if any are active
-        await db.execute("UPDATE businesses SET is_active = 0 WHERE assistant_name = ?", (assistant_name,))
+        await conn.execute("UPDATE businesses SET is_active = false WHERE assistant_name = $1", assistant_name)
         # Then delete
-        await db.execute("DELETE FROM businesses WHERE assistant_name = ?", (assistant_name,))
-        await db.commit()
+        await conn.execute("DELETE FROM businesses WHERE assistant_name = $1", assistant_name)
         # Return count of deleted businesses
-        async with db.execute("SELECT changes()") as cursor:
-            return (await cursor.fetchone())[0]
-
+        return await conn.fetchval("SELECT COUNT(*) FROM businesses WHERE assistant_name = $1", assistant_name)
