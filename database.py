@@ -25,11 +25,14 @@ async def get_pool():
                 "Please add POSTGRES_URL to your Vercel environment variables."
             )
         try:
+            # Supabase uses pgbouncer which doesn't support prepared statements
+            # Set statement_cache_size=0 to disable prepared statements
             _pool = await asyncpg.create_pool(
                 DATABASE_URL,
                 min_size=1,
                 max_size=10,
-                command_timeout=60
+                command_timeout=60,
+                statement_cache_size=0  # Required for pgbouncer/transaction pooling
             )
         except Exception as e:
             raise ValueError(
