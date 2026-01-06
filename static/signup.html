@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - AI Phone Receptionist</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,97 +14,155 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --gray: #64748b;
+            --gray-light: #94a3b8;
+            --white: #ffffff;
+            --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .signup-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            max-width: 450px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 3rem;
+            max-width: 500px;
             width: 100%;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
         }
         
         .logo {
             text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
         }
         
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 10px;
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
         
         .subtitle {
             text-align: center;
-            color: #666;
-            margin-bottom: 30px;
+            color: var(--gray-light);
+            margin-bottom: 2.5rem;
+            font-size: 1rem;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
         
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
+            margin-bottom: 0.75rem;
+            color: white;
             font-weight: 500;
+            font-size: 0.875rem;
         }
         
         input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
         }
         
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.7);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        input::placeholder {
+            color: var(--gray);
         }
         
         .btn {
             width: 100%;
-            padding: 12px;
-            background: #667eea;
+            padding: 1rem;
+            background: var(--gradient);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
+            border-radius: 12px;
+            font-size: 1.125rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
         }
         
         .btn:hover {
-            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
         }
         
         .btn:disabled {
-            background: #ccc;
+            opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
         }
         
         .error {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
             display: none;
+            font-size: 0.875rem;
         }
         
         .error.show {
@@ -110,24 +171,26 @@
         
         .login-link {
             text-align: center;
-            margin-top: 20px;
-            color: #666;
+            margin-top: 2rem;
+            color: var(--gray-light);
+            font-size: 0.875rem;
         }
         
         .login-link a {
-            color: #667eea;
+            color: var(--primary);
             text-decoration: none;
             font-weight: 600;
+            transition: color 0.3s;
         }
         
         .login-link a:hover {
-            text-decoration: underline;
+            color: var(--secondary);
         }
     </style>
 </head>
 <body>
     <div class="signup-container">
-        <div class="logo">🤖</div>
+        <div class="logo">AI Receptionist</div>
         <h1>Create Account</h1>
         <p class="subtitle">Start your free trial today</p>
         
@@ -136,12 +199,12 @@
         <form id="signupForm">
             <div class="form-group">
                 <label for="full_name">Full Name</label>
-                <input type="text" id="full_name" name="full_name" required>
+                <input type="text" id="full_name" name="full_name" required placeholder="John Doe">
             </div>
             
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required autocomplete="email">
+                <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
             </div>
             
             <div class="form-group">
@@ -151,7 +214,7 @@
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8">
+                <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8" placeholder="••••••••">
             </div>
             
             <button type="submit" class="btn" id="submitBtn">Create Account</button>
@@ -192,11 +255,8 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Store token
                     localStorage.setItem('auth_token', data.access_token);
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    
-                    // Redirect to dashboard
                     window.location.href = '/dashboard';
                 } else {
                     errorDiv.textContent = data.detail || 'Signup failed. Please try again.';
@@ -214,4 +274,3 @@
     </script>
 </body>
 </html>
-

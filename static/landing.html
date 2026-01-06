@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Phone Receptionist - Never Miss a Call</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,277 +14,430 @@
             box-sizing: border-box;
         }
         
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --gray: #64748b;
+            --gray-light: #94a3b8;
+            --white: #ffffff;
+            --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
         }
         
-        .hero {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark);
+            color: var(--white);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--gray-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--white);
+        }
+        
+        .btn-nav {
+            padding: 0.75rem 1.5rem;
+            background: var(--gradient);
+            border: none;
+            border-radius: 12px;
             color: white;
-            padding: 80px 20px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .btn-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
+            padding: 8rem 5% 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease-out;
         }
         
         .hero h1 {
-            font-size: 3.5em;
-            margin-bottom: 20px;
-            font-weight: 700;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
         }
         
         .hero p {
-            font-size: 1.3em;
-            margin-bottom: 30px;
-            opacity: 0.95;
+            font-size: clamp(1.125rem, 2vw, 1.5rem);
+            color: var(--gray-light);
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .cta-buttons {
             display: flex;
-            gap: 20px;
+            gap: 1rem;
             justify-content: center;
             flex-wrap: wrap;
+            animation: fadeInUp 1.2s ease-out 0.6s both;
         }
         
         .btn {
-            padding: 15px 40px;
-            font-size: 1.1em;
+            padding: 1rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
             border: none;
-            border-radius: 8px;
+            border-radius: 16px;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
-            font-weight: 600;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
         
         .btn-primary {
-            background: white;
-            color: #667eea;
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(99, 102, 241, 0.6);
         }
         
         .btn-secondary {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 2px solid white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
         }
         
         .btn-secondary:hover {
-            background: white;
-            color: #667eea;
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
         }
         
+        /* Features Grid */
         .features {
-            padding: 80px 20px;
-            max-width: 1200px;
+            padding: 8rem 5%;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
-        .features h2 {
+        .section-header {
             text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 60px;
-            color: #333;
+            margin-bottom: 5rem;
+        }
+        
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-header p {
+            font-size: 1.25rem;
+            color: var(--gray-light);
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
         }
         
         .feature-card {
-            text-align: center;
-            padding: 30px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.2);
         }
         
         .feature-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-        }
-        
-        .feature-card h3 {
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            color: #667eea;
-        }
-        
-        .feature-card p {
-            color: #666;
-            line-height: 1.8;
-        }
-        
-        .how-it-works {
-            background: #f8f9fa;
-            padding: 80px 20px;
-        }
-        
-        .how-it-works-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .how-it-works h2 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 60px;
-            color: #333;
-        }
-        
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-        }
-        
-        .step {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .step-number {
-            background: #667eea;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin: 0 auto 20px;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
         }
         
-        .step h3 {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #333;
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: white;
         }
         
-        .step p {
-            text-align: center;
-            color: #666;
+        .feature-card p {
+            color: var(--gray-light);
+            line-height: 1.8;
         }
         
+        /* Pricing */
         .pricing {
-            padding: 80px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .pricing h2 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 60px;
-            color: #333;
+            padding: 8rem 5%;
+            background: rgba(30, 41, 59, 0.3);
         }
         
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
         .pricing-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            padding: 40px 30px;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .pricing-card.featured {
+            background: var(--gradient);
+            border: none;
+            transform: scale(1.05);
         }
         
         .pricing-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
         }
         
-        .pricing-card.featured {
-            border-color: #667eea;
-            border-width: 3px;
-            transform: scale(1.05);
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-5px);
         }
         
         .pricing-card h3 {
-            font-size: 1.8em;
-            margin-bottom: 10px;
-            color: #333;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
         }
         
         .price {
-            font-size: 3em;
-            font-weight: bold;
-            color: #667eea;
-            margin: 20px 0;
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 1.5rem 0;
+            line-height: 1;
         }
         
         .price span {
-            font-size: 0.4em;
-            color: #666;
+            font-size: 1.25rem;
+            font-weight: 400;
+            opacity: 0.8;
         }
         
         .pricing-features {
             list-style: none;
-            margin: 30px 0;
-            text-align: left;
+            margin: 2rem 0;
         }
         
         .pricing-features li {
-            padding: 10px 0;
-            color: #666;
+            padding: 0.75rem 0;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
         
-        .pricing-features li:before {
-            content: "✓ ";
-            color: #10b981;
-            font-weight: bold;
-            margin-right: 10px;
+        .pricing-features li::before {
+            content: "✓";
+            width: 24px;
+            height: 24px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary);
         }
         
-        .cta-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .pricing-card.featured .pricing-features li::before {
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 80px 20px;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 8rem 5%;
             text-align: center;
+            background: var(--gradient);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .cta-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
         }
         
         .cta-section h2 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
         }
         
         .cta-section p {
-            font-size: 1.2em;
-            margin-bottom: 40px;
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
             opacity: 0.95;
         }
         
+        /* Footer */
         footer {
-            background: #1a1a1a;
-            color: white;
-            padding: 40px 20px;
+            padding: 3rem 5%;
             text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--gray-light);
         }
         
+        /* Responsive */
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5em;
+            .nav-links {
+                display: none;
             }
             
-            .hero p {
-                font-size: 1.1em;
+            .hero {
+                padding: 6rem 5% 4rem;
             }
             
             .features-grid,
-            .steps,
             .pricing-grid {
                 grid-template-columns: 1fr;
             }
@@ -289,96 +445,87 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="logo">AI Receptionist</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="/login">Sign In</a>
+            <a href="/signup" class="btn-nav">Get Started</a>
+        </div>
+    </nav>
+    
     <section class="hero">
-        <h1>🤖 AI Phone Receptionist</h1>
-        <p>Never miss a call. Never lose an order. 24/7 intelligent phone automation.</p>
-        <div class="cta-buttons">
-            <a href="/signup" class="btn btn-primary">Start Free Trial</a>
-            <a href="/login" class="btn btn-secondary">Sign In</a>
+        <div class="hero-content">
+            <div class="badge">✨ AI-Powered Phone Automation</div>
+            <h1>Never Miss a Call.<br>Never Lose an Order.</h1>
+            <p>24/7 intelligent phone receptionist that answers calls, takes orders, books appointments, and handles customer inquiries—all powered by advanced AI.</p>
+            <div class="cta-buttons">
+                <a href="/signup" class="btn btn-primary">Start Free Trial</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
+            </div>
         </div>
     </section>
     
-    <section class="features">
-        <h2>Why Choose AI Phone Receptionist?</h2>
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Everything You Need</h2>
+            <p>Powerful features designed for modern businesses</p>
+        </div>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">📞</div>
                 <h3>24/7 Availability</h3>
-                <p>Your AI receptionist never sleeps. Answer calls, take orders, and book appointments around the clock.</p>
+                <p>Your AI receptionist never sleeps. Answer calls, take orders, and book appointments around the clock, even when you're closed.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
                 <h3>Lightning Fast</h3>
-                <p>Optimized for speed with GPT-3.5-Turbo. Natural conversations that feel instant and human-like.</p>
+                <p>Optimized for speed with GPT-3.5-Turbo. Natural conversations that feel instant and human-like, keeping customers engaged.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎯</div>
                 <h3>Multi-Business Support</h3>
-                <p>Switch between pizza shops, cafes, medical offices, and more. One platform, unlimited possibilities.</p>
+                <p>Switch between pizza shops, cafes, medical offices, and more. One platform, unlimited possibilities for any business type.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📊</div>
                 <h3>Analytics Dashboard</h3>
-                <p>Track calls, orders, and customer interactions. Export data, view trends, and make data-driven decisions.</p>
+                <p>Track calls, orders, and customer interactions. Export data, view trends, and make data-driven decisions with comprehensive insights.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔒</div>
                 <h3>Secure & Private</h3>
-                <p>Multi-tenant architecture ensures complete data isolation. Your data is yours alone.</p>
+                <p>Multi-tenant architecture ensures complete data isolation. Your data is yours alone, with enterprise-grade security.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">💰</div>
                 <h3>Cost Effective</h3>
-                <p>No need to hire receptionists. Start free, scale as you grow. Plans for every business size.</p>
+                <p>No need to hire receptionists. Start free, scale as you grow. Plans for every business size, from startups to enterprises.</p>
             </div>
         </div>
     </section>
     
-    <section class="how-it-works">
-        <div class="how-it-works-content">
-            <h2>How It Works</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Sign Up</h3>
-                    <p>Create your account in seconds. No credit card required for free tier.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Configure</h3>
-                    <p>Set up your business type, greeting, and voice. Customize your AI assistant.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Connect</h3>
-                    <p>Link your Twilio phone number. Your AI is ready to answer calls immediately.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Grow</h3>
-                    <p>Watch your orders and appointments roll in. Track everything in your dashboard.</p>
-                </div>
-            </div>
+    <section class="pricing" id="pricing">
+        <div class="section-header">
+            <h2>Simple, Transparent Pricing</h2>
+            <p>Choose the plan that fits your business</p>
         </div>
-    </section>
-    
-    <section class="pricing">
-        <h2>Simple, Transparent Pricing</h2>
         <div class="pricing-grid">
             <div class="pricing-card">
                 <h3>Free</h3>
-                <div class="price">$0<span>/month</span></div>
+                <div class="price">$0<span>/mo</span></div>
                 <ul class="pricing-features">
                     <li>50 calls/month</li>
                     <li>1 AI bot</li>
                     <li>Basic analytics</li>
                     <li>Email support</li>
                 </ul>
-                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Get Started</a>
+                <a href="/signup" class="btn btn-secondary" style="width: 100%; margin-top: 1.5rem; text-align: center;">Get Started</a>
             </div>
             <div class="pricing-card featured">
                 <h3>Starter</h3>
-                <div class="price">$29<span>/month</span></div>
+                <div class="price">$29<span>/mo</span></div>
                 <ul class="pricing-features">
                     <li>500 calls/month</li>
                     <li>3 AI bots</li>
@@ -386,11 +533,11 @@
                     <li>Priority support</li>
                     <li>API access</li>
                 </ul>
-                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Start Trial</a>
+                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; text-align: center; background: white; color: var(--primary);">Start Trial</a>
             </div>
             <div class="pricing-card">
                 <h3>Pro</h3>
-                <div class="price">$99<span>/month</span></div>
+                <div class="price">$99<span>/mo</span></div>
                 <ul class="pricing-features">
                     <li>2,000 calls/month</li>
                     <li>10 AI bots</li>
@@ -398,15 +545,17 @@
                     <li>Webhooks</li>
                     <li>Dedicated support</li>
                 </ul>
-                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Start Trial</a>
+                <a href="/signup" class="btn btn-secondary" style="width: 100%; margin-top: 1.5rem; text-align: center;">Start Trial</a>
             </div>
         </div>
     </section>
     
     <section class="cta-section">
-        <h2>Ready to Transform Your Phone System?</h2>
-        <p>Join businesses already using AI Phone Receptionist to never miss a call.</p>
-        <a href="/signup" class="btn btn-primary">Start Your Free Trial</a>
+        <div class="cta-content">
+            <h2>Ready to Transform Your Phone System?</h2>
+            <p>Join businesses already using AI Phone Receptionist to never miss a call.</p>
+            <a href="/signup" class="btn btn-primary" style="background: white; color: var(--primary);">Start Your Free Trial</a>
+        </div>
     </section>
     
     <footer>
@@ -414,4 +563,3 @@
     </footer>
 </body>
 </html>
-
