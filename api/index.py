@@ -9,10 +9,20 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Import the FastAPI app
-from main import app
+# Set environment for Vercel
+os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
-# Vercel expects the app to be exported
-# For FastAPI with Vercel Python runtime, we export the app directly
-# The @vercel/python runtime will handle it
-handler = app
+# Import the FastAPI app
+try:
+    from main import app
+    handler = app
+except Exception as e:
+    # Create a minimal error handler if import fails
+    from fastapi import FastAPI
+    error_app = FastAPI()
+    
+    @error_app.get("/")
+    async def error():
+        return {"error": f"Import error: {str(e)}"}
+    
+    handler = error_app

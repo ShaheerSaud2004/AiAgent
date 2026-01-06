@@ -54,12 +54,19 @@ app = FastAPI(
 )
 
 # Initialize database on startup
+# Note: On Vercel, startup events may not work as expected
+# Database will be initialized on first request if needed
 @app.on_event("startup")
 async def startup():
-    await init_db()
-    # Load active business configuration
-    from prompts import load_active_business
-    await load_active_business()
+    try:
+        await init_db()
+        # Load active business configuration
+        from prompts import load_active_business
+        await load_active_business()
+    except Exception as e:
+        import logging
+        logger.error(f"Startup error (non-fatal): {e}")
+        # Continue anyway - will initialize on first request
 
 # Serve static files (frontend)
 # On Vercel, static files are served automatically, but we keep this for local dev

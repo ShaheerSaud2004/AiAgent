@@ -11,7 +11,14 @@ import os
 
 # Use environment variable for database path (Vercel uses /tmp for writable storage)
 import os
-DB_PATH = os.getenv("DATABASE_URL", os.path.join(os.getenv("TMPDIR", "/tmp"), "receptionist.db"))
+
+# Vercel serverless functions use /tmp for writable storage
+# Check if we're on Vercel (has VERCEL env var)
+if os.getenv("VERCEL"):
+    DB_PATH = os.path.join("/tmp", "receptionist.db")
+else:
+    # Local development
+    DB_PATH = os.getenv("DATABASE_URL", "receptionist.db")
 
 
 async def init_db():
