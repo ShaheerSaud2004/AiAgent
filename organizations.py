@@ -10,9 +10,36 @@ async def create_organization(name: str, subdomain: str = None) -> int:
     """Create a new organization."""
     pool = await get_pool()
     async with pool.acquire() as conn:
+        # Generate subdomain if not provided
+        if not subdomain:
+            base_subdomain = name.lower().replace(" ", "-").replace("'", "").replace(".", "")
+            # Remove special characters
+            base_subdomain = ''.join(c for c in base_subdomain if c.isalnum() or c == '-')
+            subdomain = base_subdomain
+        
+        # Handle duplicate subdomains by adding a suffix
+        original_subdomain = subdomain
+        counter = 1
+        while True:
+            existing = await conn.fetchval(
+                "SELECT id FROM organizations WHERE subdomain = $1",
+                subdomain
+            )
+            if not existing:
+                break
+            # If subdomain exists, add a number suffix
+            subdomain = f"{original_subdomain}-{counter}"
+            counter += 1
+            # Safety check to prevent infinite loop
+            if counter > 1000:
+                # Use timestamp as fallback
+                import time
+                subdomain = f"{original_subdomain}-{int(time.time())}"
+                break
+        
         org_id = await conn.fetchval(
             "INSERT INTO organizations (name, subdomain) VALUES ($1, $2) RETURNING id",
-            name, subdomain or name.lower().replace(" ", "-")
+            name, subdomain
         )
         return org_id
 
