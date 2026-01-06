@@ -1,5 +1,6 @@
 """
 Vercel serverless function entry point for FastAPI app.
+Uses Mangum to wrap FastAPI for AWS Lambda/Vercel compatibility.
 """
 import sys
 import os
@@ -12,17 +13,21 @@ if parent_dir not in sys.path:
 # Set environment for Vercel
 os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
+# Import Mangum first
+from mangum import Mangum
+
 # Import the FastAPI app
 try:
     from main import app
-    handler = app
+    # Wrap FastAPI app with Mangum for Vercel/Lambda compatibility
+    handler = Mangum(app, lifespan="off")
 except Exception as e:
-    # Create a minimal error handler if import fails
+    # Fallback: create minimal error app
     from fastapi import FastAPI
     error_app = FastAPI()
     
     @error_app.get("/")
     async def error():
-        return {"error": f"Import error: {str(e)}"}
+        return {"error": f"Import error: {str(e)}", "type": type(e).__name__}
     
-    handler = error_app
+    handler = Mangum(error_app, lifespan="off")
