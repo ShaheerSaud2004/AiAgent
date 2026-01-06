@@ -30,11 +30,17 @@ def get_password_hash(password: str) -> str:
     # Convert to bytes to check length properly
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
-        # Truncate to 72 bytes, but decode carefully to avoid cutting multi-byte characters
+        # Truncate to 72 bytes safely
+        # Go backwards from 72 to find a valid UTF-8 boundary
         truncated = password_bytes[:72]
-        # Find the last complete character (don't cut in middle of UTF-8 sequence)
-        while truncated and truncated[-1] & 0x80 and not (truncated[-1] & 0x40):
-            truncated = truncated[:-1]
+        # Remove any incomplete UTF-8 sequences at the end
+        while truncated:
+            try:
+                # Try to decode - if it fails, remove last byte and try again
+                truncated.decode('utf-8')
+                break
+            except UnicodeDecodeError:
+                truncated = truncated[:-1]
         password = truncated.decode('utf-8', errors='ignore')
     return pwd_context.hash(password)
 
