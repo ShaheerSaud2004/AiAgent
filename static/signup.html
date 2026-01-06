@@ -6,7 +6,7 @@
     <title>Sign Up - AI Phone Receptionist</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,114 +15,84 @@
         }
         
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #ec4899;
-            --dark: #0f172a;
-            --dark-light: #1e293b;
+            --blue: #3b82f6;
+            --blue-dark: #2563eb;
+            --slate: #1e293b;
+            --slate-dark: #0f172a;
+            --slate-light: #334155;
             --gray: #64748b;
-            --gray-light: #94a3b8;
             --white: #ffffff;
-            --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--dark);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--slate-dark);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        body::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
-            animation: pulse 20s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .signup-container {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 32px;
+            background: var(--slate);
+            border: 1px solid var(--slate-light);
+            border-radius: 16px;
             padding: 3rem;
-            max-width: 500px;
+            max-width: 460px;
             width: 100%;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            position: relative;
-            z-index: 1;
         }
         
         .logo {
             text-align: center;
-            font-size: 2rem;
-            font-weight: 800;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--blue);
             margin-bottom: 0.5rem;
         }
         
         h1 {
             text-align: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: 700;
+            color: var(--white);
+            font-size: 1.75rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
         }
         
         .subtitle {
             text-align: center;
-            color: var(--gray-light);
-            margin-bottom: 2.5rem;
-            font-size: 1rem;
+            color: var(--gray);
+            margin-bottom: 2rem;
+            font-size: 0.9375rem;
         }
         
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
         
         label {
             display: block;
-            margin-bottom: 0.75rem;
-            color: white;
+            margin-bottom: 0.5rem;
+            color: var(--white);
             font-weight: 500;
             font-size: 0.875rem;
         }
         
         input {
             width: 100%;
-            padding: 1rem;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            padding: 0.875rem;
+            background: var(--slate-dark);
+            border: 1px solid var(--slate-light);
+            border-radius: 8px;
             font-size: 1rem;
-            color: white;
-            transition: all 0.3s;
+            color: var(--white);
+            transition: border-color 0.2s;
             font-family: 'Inter', sans-serif;
         }
         
         input:focus {
             outline: none;
-            border-color: var(--primary);
-            background: rgba(15, 23, 42, 0.7);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: var(--blue);
         }
         
         input::placeholder {
@@ -131,36 +101,34 @@
         
         .btn {
             width: 100%;
-            padding: 1rem;
-            background: var(--gradient);
+            padding: 0.875rem;
+            background: var(--blue);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 1.125rem;
+            border-radius: 8px;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s;
             margin-top: 0.5rem;
         }
         
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            background: var(--blue-dark);
         }
         
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            transform: none;
         }
         
         .error {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
             color: #fca5a5;
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
+            padding: 0.875rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
             display: none;
             font-size: 0.875rem;
         }
@@ -171,20 +139,19 @@
         
         .login-link {
             text-align: center;
-            margin-top: 2rem;
-            color: var(--gray-light);
+            margin-top: 1.5rem;
+            color: var(--gray);
             font-size: 0.875rem;
         }
         
         .login-link a {
-            color: var(--primary);
+            color: var(--blue);
             text-decoration: none;
             font-weight: 600;
-            transition: color 0.3s;
         }
         
         .login-link a:hover {
-            color: var(--secondary);
+            text-decoration: underline;
         }
     </style>
 </head>

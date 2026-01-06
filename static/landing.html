@@ -6,7 +6,7 @@
     <title>AI Phone Receptionist - Never Miss a Call</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,48 +15,41 @@
         }
         
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #ec4899;
-            --dark: #0f172a;
-            --dark-light: #1e293b;
+            --blue: #3b82f6;
+            --blue-dark: #2563eb;
+            --blue-light: #60a5fa;
+            --slate: #1e293b;
+            --slate-dark: #0f172a;
+            --slate-light: #334155;
             --gray: #64748b;
-            --gray-light: #94a3b8;
             --white: #ffffff;
-            --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--dark);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--slate-dark);
             color: var(--white);
             line-height: 1.6;
-            overflow-x: hidden;
         }
         
-        /* Navbar */
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
-            padding: 1.5rem 5%;
+            padding: 1.25rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
             z-index: 1000;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.1);
         }
         
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--blue);
         }
         
         .nav-links {
@@ -66,10 +59,10 @@
         }
         
         .nav-links a {
-            color: var(--gray-light);
+            color: var(--gray);
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.3s;
+            transition: color 0.2s;
         }
         
         .nav-links a:hover {
@@ -77,22 +70,20 @@
         }
         
         .btn-nav {
-            padding: 0.75rem 1.5rem;
-            background: var(--gradient);
+            padding: 0.625rem 1.25rem;
+            background: var(--blue);
             border: none;
-            border-radius: 12px;
+            border-radius: 8px;
             color: white;
             font-weight: 600;
             text-decoration: none;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: background 0.2s;
         }
         
         .btn-nav:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            background: var(--blue-dark);
         }
         
-        /* Hero Section */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -101,76 +92,23 @@
             align-items: center;
             text-align: center;
             padding: 8rem 5% 4rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
-            animation: pulse 20s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        
-        .hero-content {
-            position: relative;
-            z-index: 1;
             max-width: 900px;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: rgba(99, 102, 241, 0.2);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            border-radius: 50px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--primary);
-            margin-bottom: 2rem;
-            animation: fadeInUp 0.6s ease-out;
+            margin: 0 auto;
         }
         
         .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 5rem);
-            font-weight: 800;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
             line-height: 1.1;
             margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: fadeInUp 0.8s ease-out 0.2s both;
+            color: var(--white);
         }
         
         .hero p {
-            font-size: clamp(1.125rem, 2vw, 1.5rem);
-            color: var(--gray-light);
-            margin-bottom: 3rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-            animation: fadeInUp 1s ease-out 0.4s both;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            font-size: clamp(1.125rem, 2vw, 1.25rem);
+            color: var(--gray);
+            margin-bottom: 2.5rem;
+            max-width: 600px;
         }
         
         .cta-buttons {
@@ -178,175 +116,150 @@
             gap: 1rem;
             justify-content: center;
             flex-wrap: wrap;
-            animation: fadeInUp 1.2s ease-out 0.6s both;
         }
         
         .btn {
-            padding: 1rem 2.5rem;
-            font-size: 1.125rem;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
             font-weight: 600;
             border: none;
-            border-radius: 16px;
+            border-radius: 8px;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
+            transition: all 0.2s;
         }
         
         .btn-primary {
-            background: var(--gradient);
+            background: var(--blue);
             color: white;
-            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
         }
         
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 50px rgba(99, 102, 241, 0.6);
+            background: var(--blue-dark);
         }
         
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            background: transparent;
+            color: var(--white);
+            border: 1px solid var(--slate-light);
         }
         
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-3px);
+            border-color: var(--blue);
+            color: var(--blue);
         }
         
-        /* Features Grid */
         .features {
-            padding: 8rem 5%;
-            max-width: 1400px;
+            padding: 6rem 5%;
+            max-width: 1200px;
             margin: 0 auto;
         }
         
         .section-header {
             text-align: center;
-            margin-bottom: 5rem;
+            margin-bottom: 4rem;
         }
         
         .section-header h2 {
-            font-size: clamp(2rem, 4vw, 3.5rem);
-            font-weight: 800;
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 700;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--white);
         }
         
         .section-header p {
-            font-size: 1.25rem;
-            color: var(--gray-light);
-            max-width: 600px;
+            font-size: 1.125rem;
+            color: var(--gray);
+            max-width: 500px;
             margin: 0 auto;
         }
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
         
         .feature-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 2.5rem;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
+            background: var(--slate);
+            border: 1px solid var(--slate-light);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.2s;
         }
         
         .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(99, 102, 241, 0.5);
-            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.2);
+            border-color: var(--blue);
+            transform: translateY(-2px);
         }
         
         .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: var(--gradient);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            margin-bottom: 1rem;
         }
         
         .feature-card h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: white;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--white);
         }
         
         .feature-card p {
-            color: var(--gray-light);
-            line-height: 1.8;
+            color: var(--gray);
+            line-height: 1.7;
         }
         
-        /* Pricing */
         .pricing {
-            padding: 8rem 5%;
-            background: rgba(30, 41, 59, 0.3);
+            padding: 6rem 5%;
+            background: var(--slate);
         }
         
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            max-width: 1000px;
             margin: 0 auto;
         }
         
         .pricing-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 3rem;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
+            background: var(--slate-dark);
+            border: 1px solid var(--slate-light);
+            border-radius: 12px;
+            padding: 2.5rem;
+            transition: all 0.2s;
         }
         
         .pricing-card.featured {
-            background: var(--gradient);
-            border: none;
-            transform: scale(1.05);
+            border-color: var(--blue);
+            border-width: 2px;
         }
         
         .pricing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
-        }
-        
-        .pricing-card.featured:hover {
-            transform: scale(1.05) translateY(-5px);
+            transform: translateY(-2px);
         }
         
         .pricing-card h3 {
             font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--white);
         }
         
         .price {
-            font-size: 3.5rem;
-            font-weight: 800;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--blue);
             margin: 1.5rem 0;
             line-height: 1;
         }
         
         .price span {
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 400;
-            opacity: 0.8;
+            color: var(--gray);
         }
         
         .pricing-features {
@@ -355,8 +268,8 @@
         }
         
         .pricing-features li {
-            padding: 0.75rem 0;
-            color: rgba(255, 255, 255, 0.9);
+            padding: 0.625rem 0;
+            color: var(--gray);
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -364,70 +277,52 @@
         
         .pricing-features li::before {
             content: "✓";
-            width: 24px;
-            height: 24px;
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            background: var(--blue);
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .pricing-card.featured .pricing-features li::before {
-            background: rgba(255, 255, 255, 0.2);
+            font-size: 0.75rem;
             color: white;
+            flex-shrink: 0;
         }
         
-        /* CTA Section */
         .cta-section {
-            padding: 8rem 5%;
+            padding: 6rem 5%;
             text-align: center;
-            background: var(--gradient);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-            opacity: 0.3;
-        }
-        
-        .cta-content {
-            position: relative;
-            z-index: 1;
-            max-width: 800px;
-            margin: 0 auto;
+            background: var(--blue);
         }
         
         .cta-section h2 {
-            font-size: clamp(2rem, 4vw, 3.5rem);
-            font-weight: 800;
-            margin-bottom: 1.5rem;
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
         }
         
         .cta-section p {
-            font-size: 1.25rem;
-            margin-bottom: 2.5rem;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
             opacity: 0.95;
         }
         
-        /* Footer */
+        .cta-section .btn {
+            background: white;
+            color: var(--blue);
+        }
+        
+        .cta-section .btn:hover {
+            background: #f3f4f6;
+        }
+        
         footer {
             padding: 3rem 5%;
             text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--gray-light);
+            border-top: 1px solid var(--slate-light);
+            color: var(--gray);
         }
         
-        /* Responsive */
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
@@ -435,11 +330,6 @@
             
             .hero {
                 padding: 6rem 5% 4rem;
-            }
-            
-            .features-grid,
-            .pricing-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -456,14 +346,11 @@
     </nav>
     
     <section class="hero">
-        <div class="hero-content">
-            <div class="badge">✨ AI-Powered Phone Automation</div>
-            <h1>Never Miss a Call.<br>Never Lose an Order.</h1>
-            <p>24/7 intelligent phone receptionist that answers calls, takes orders, books appointments, and handles customer inquiries—all powered by advanced AI.</p>
-            <div class="cta-buttons">
-                <a href="/signup" class="btn btn-primary">Start Free Trial</a>
-                <a href="#features" class="btn btn-secondary">Learn More</a>
-            </div>
+        <h1>Never Miss a Call.<br>Never Lose an Order.</h1>
+        <p>24/7 intelligent phone receptionist that answers calls, takes orders, and handles customer inquiries—all powered by AI.</p>
+        <div class="cta-buttons">
+            <a href="/signup" class="btn btn-primary">Start Free Trial</a>
+            <a href="#features" class="btn btn-secondary">Learn More</a>
         </div>
     </section>
     
@@ -476,32 +363,32 @@
             <div class="feature-card">
                 <div class="feature-icon">📞</div>
                 <h3>24/7 Availability</h3>
-                <p>Your AI receptionist never sleeps. Answer calls, take orders, and book appointments around the clock, even when you're closed.</p>
+                <p>Your AI receptionist never sleeps. Answer calls, take orders, and book appointments around the clock.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
                 <h3>Lightning Fast</h3>
-                <p>Optimized for speed with GPT-3.5-Turbo. Natural conversations that feel instant and human-like, keeping customers engaged.</p>
+                <p>Optimized for speed with GPT-3.5-Turbo. Natural conversations that feel instant and human-like.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎯</div>
                 <h3>Multi-Business Support</h3>
-                <p>Switch between pizza shops, cafes, medical offices, and more. One platform, unlimited possibilities for any business type.</p>
+                <p>Switch between pizza shops, cafes, medical offices, and more. One platform, unlimited possibilities.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📊</div>
                 <h3>Analytics Dashboard</h3>
-                <p>Track calls, orders, and customer interactions. Export data, view trends, and make data-driven decisions with comprehensive insights.</p>
+                <p>Track calls, orders, and customer interactions. Export data, view trends, and make data-driven decisions.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔒</div>
                 <h3>Secure & Private</h3>
-                <p>Multi-tenant architecture ensures complete data isolation. Your data is yours alone, with enterprise-grade security.</p>
+                <p>Multi-tenant architecture ensures complete data isolation. Your data is yours alone.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">💰</div>
                 <h3>Cost Effective</h3>
-                <p>No need to hire receptionists. Start free, scale as you grow. Plans for every business size, from startups to enterprises.</p>
+                <p>No need to hire receptionists. Start free, scale as you grow. Plans for every business size.</p>
             </div>
         </div>
     </section>
@@ -533,7 +420,7 @@
                     <li>Priority support</li>
                     <li>API access</li>
                 </ul>
-                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; text-align: center; background: white; color: var(--primary);">Start Trial</a>
+                <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; text-align: center;">Start Trial</a>
             </div>
             <div class="pricing-card">
                 <h3>Pro</h3>
@@ -551,11 +438,9 @@
     </section>
     
     <section class="cta-section">
-        <div class="cta-content">
-            <h2>Ready to Transform Your Phone System?</h2>
-            <p>Join businesses already using AI Phone Receptionist to never miss a call.</p>
-            <a href="/signup" class="btn btn-primary" style="background: white; color: var(--primary);">Start Your Free Trial</a>
-        </div>
+        <h2>Ready to Transform Your Phone System?</h2>
+        <p>Join businesses already using AI Phone Receptionist to never miss a call.</p>
+        <a href="/signup" class="btn">Start Your Free Trial</a>
     </section>
     
     <footer>
