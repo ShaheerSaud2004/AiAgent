@@ -25,48 +25,55 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    # Bcrypt has a 72-byte limit, so truncate if necessary
-    # Convert to bytes to check length properly
+    """Hash a password.
+    
+    Bcrypt has a 72-byte limit. This function ensures the password
+    is truncated to 72 bytes before hashing, handling UTF-8 boundaries correctly.
+    """
+    # Convert to bytes to check actual byte length
     password_bytes = password.encode('utf-8')
     
-    # If password is too long, truncate to exactly 72 bytes
-    # We need to be careful not to break UTF-8 sequences
+    # If password exceeds 72 bytes, truncate it
     if len(password_bytes) > 72:
         # Truncate to 72 bytes
-        truncated = password_bytes[:72]
+        truncated_bytes = password_bytes[:72]
         
         # Remove any incomplete UTF-8 sequences at the end
-        # UTF-8 continuation bytes start with 10xxxxxx (0x80-0xBF)
-        # We need to find the last byte that starts a character
-        while truncated:
-            last_byte = truncated[-1]
-            # If it's a continuation byte (10xxxxxx), remove it
+        # UTF-8 continuation bytes have pattern 10xxxxxx (0x80-0xBF)
+        while truncated_bytes:
+            last_byte = truncated_bytes[-1]
+            # If it's a continuation byte, remove it to avoid breaking UTF-8
             if (last_byte & 0xC0) == 0x80:
-                truncated = truncated[:-1]
+                truncated_bytes = truncated_bytes[:-1]
             else:
                 break
         
-        # Decode the truncated bytes - this is safe now
-        password = truncated.decode('utf-8', errors='ignore')
+        # Decode back to string
+        password = truncated_bytes.decode('utf-8', errors='ignore')
         
-        # Final safety check: ensure the decoded password, when re-encoded, is <= 72 bytes
-        # If not, truncate the string character by character until it fits
-        while True:
-            test_bytes = password.encode('utf-8')
-            if len(test_bytes) <= 72:
-                break
-            # Remove last character and try again
-            if len(password) > 0:
+        # Double-check: sometimes decoding and re-encoding can change byte length
+        # due to UTF-8 normalization. Ensure it's still <= 72 bytes.
+        final_bytes = password.encode('utf-8')
+        if len(final_bytes) > 72:
+            # If still too long, truncate character by character
+            while len(password) > 0:
                 password = password[:-1]
-            else:
-                # Edge case: empty string somehow encodes to > 72 bytes (shouldn't happen)
-                password = ""
-                break
+                if len(password.encode('utf-8')) <= 72:
+                    break
     
-    # Now hash - password is guaranteed to be <= 72 bytes when encoded
-    # But passlib might check the original string, so let's pass the truncated version
-    # Actually, passlib checks the byte length of what we pass, so we're good
+    # Verify final byte length (should always be <= 72)
+    final_check = password.encode('utf-8')
+    if len(final_check) > 72:
+        # Last resort: force truncate to 72 bytes as bytes, then decode
+        password = final_check[:72].decode('utf-8', errors='ignore')
+        # Remove any trailing continuation bytes
+        while password:
+            test = password.encode('utf-8')
+            if len(test) <= 72:
+                break
+            password = password[:-1]
+    
+    # Now hash - password is guaranteed to encode to <= 72 bytes
     return pwd_context.hash(password)
 
 
