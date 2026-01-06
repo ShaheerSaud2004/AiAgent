@@ -1,6 +1,6 @@
 """
 Vercel serverless function entry point for FastAPI app.
-This must export a 'handler' variable that Vercel can call.
+Creates a proper Lambda handler function for Vercel.
 """
 import sys
 import os
@@ -13,29 +13,18 @@ if parent_dir not in sys.path:
 # Set environment for Vercel
 os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
-# Import and wrap FastAPI app
-try:
-    from mangum import Mangum
-    from main import app
-    
-    # Create Mangum handler - this converts ASGI to Lambda/Vercel format
-    handler = Mangum(app, lifespan="off")
-    
-except Exception as e:
-    # If import fails, create a minimal error handler
-    import traceback
-    from fastapi import FastAPI
-    from mangum import Mangum
-    
-    error_app = FastAPI()
-    
-    @error_app.get("/")
-    @error_app.post("/")
-    async def error_handler():
-        return {
-            "error": "Application failed to load",
-            "message": str(e),
-            "traceback": traceback.format_exc()
-        }
-    
-    handler = Mangum(error_app, lifespan="off")
+# Import Mangum and FastAPI app
+from mangum import Mangum
+from main import app
+
+# Create Mangum handler
+mangum_handler = Mangum(app, lifespan="off")
+
+# Create a Lambda-compatible handler function
+# Vercel expects a function that takes (event, context)
+def handler(event, context):
+    """
+    Lambda handler function for Vercel.
+    This is the format Vercel's Python runtime expects.
+    """
+    return mangum_handler(event, context)
