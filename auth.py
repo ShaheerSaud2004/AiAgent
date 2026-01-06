@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database import get_pool
@@ -15,17 +15,28 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to 72 bytes if needed (bcrypt limit)
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        truncated = password_bytes[:72]
+        # Remove incomplete UTF-8 sequences
+        while truncated and (truncated[-1] & 0xC0) == 0x80:
+            truncated = truncated[:-1]
+        plain_password = truncated.decode('utf-8', errors='ignore')
+    
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password.
+    """Hash a password using bcrypt directly.
     
     Bcrypt has a 72-byte limit. This function ensures the password
     is truncated to 72 bytes before hashing, handling UTF-8 boundaries correctly.
@@ -48,33 +59,13 @@ def get_password_hash(password: str) -> str:
             else:
                 break
         
-        # Decode back to string
-        password = truncated_bytes.decode('utf-8', errors='ignore')
-        
-        # Double-check: sometimes decoding and re-encoding can change byte length
-        # due to UTF-8 normalization. Ensure it's still <= 72 bytes.
-        final_bytes = password.encode('utf-8')
-        if len(final_bytes) > 72:
-            # If still too long, truncate character by character
-            while len(password) > 0:
-                password = password[:-1]
-                if len(password.encode('utf-8')) <= 72:
-                    break
+        # Use truncated bytes directly for hashing
+        password_bytes = truncated_bytes
     
-    # Verify final byte length (should always be <= 72)
-    final_check = password.encode('utf-8')
-    if len(final_check) > 72:
-        # Last resort: force truncate to 72 bytes as bytes, then decode
-        password = final_check[:72].decode('utf-8', errors='ignore')
-        # Remove any trailing continuation bytes
-        while password:
-            test = password.encode('utf-8')
-            if len(test) <= 72:
-                break
-            password = password[:-1]
-    
-    # Now hash - password is guaranteed to encode to <= 72 bytes
-    return pwd_context.hash(password)
+    # Hash using bcrypt directly (bypasses passlib's validation)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
