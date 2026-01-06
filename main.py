@@ -731,81 +731,105 @@ class SignupRequest(BaseModel):
 @app.post("/api/auth/login")
 async def login(login_data: LoginRequest):
     """Login endpoint."""
-    user = await authenticate_user(login_data.email, login_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+    try:
+        # Ensure database is initialized
+        await ensure_db_initialized()
+        
+        user = await authenticate_user(login_data.email, login_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user["id"], "org_id": user["organization_id"]},
+            expires_delta=access_token_expires
         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user["id"], "org_id": user["organization_id"]},
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "full_name": user.get("full_name"),
-            "role": user.get("role"),
-            "organization_id": user["organization_id"]
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "full_name": user.get("full_name"),
+                "role": user.get("role"),
+                "organization_id": user["organization_id"]
+            }
         }
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
 
 
 @app.post("/api/auth/signup")
 async def signup(signup_data: SignupRequest):
     """Signup endpoint."""
-    # Check if user already exists
-    from auth import get_user_by_email
-    existing_user = await get_user_by_email(signup_data.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Create organization
-    org_id = await create_organization(signup_data.organization_name)
-    
-    # Create user
-    user_id = await create_user(
-        email=signup_data.email,
-        password=signup_data.password,
-        organization_id=org_id,
-        full_name=signup_data.full_name or signup_data.email.split("@")[0],
-        role="admin"
-    )
-    
-    # Create default business for the organization
-    from database import init_default_businesses_for_org
     try:
-        await init_default_businesses_for_org(org_id)
-    except Exception as e:
-        logger.error(f"Error creating default business: {e}")
-    
-    # Login the user
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_id, "org_id": org_id},
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user_id,
-            "email": signup_data.email,
-            "full_name": signup_data.full_name,
-            "role": "admin",
-            "organization_id": org_id
+        # Ensure database is initialized
+        await ensure_db_initialized()
+        
+        # Check if user already exists
+        from auth import get_user_by_email
+        existing_user = await get_user_by_email(signup_data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Create organization
+        org_id = await create_organization(signup_data.organization_name)
+        
+        # Create user
+        user_id = await create_user(
+            email=signup_data.email,
+            password=signup_data.password,
+            organization_id=org_id,
+            full_name=signup_data.full_name or signup_data.email.split("@")[0],
+            role="admin"
+        )
+        
+        # Create default business for the organization
+        from database import init_default_businesses_for_org
+        try:
+            await init_default_businesses_for_org(org_id)
+        except Exception as e:
+            logger.error(f"Error creating default business: {e}")
+        
+        # Login the user
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user_id, "org_id": org_id},
+            expires_delta=access_token_expires
+        )
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user_id,
+                "email": signup_data.email,
+                "full_name": signup_data.full_name,
+                "role": "admin",
+                "organization_id": org_id
+            }
         }
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Signup error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Signup failed: {str(e)}"
+        )
 
 
 @app.get("/api/auth/me")

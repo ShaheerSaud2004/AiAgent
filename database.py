@@ -20,13 +20,22 @@ async def get_pool():
     global _pool
     if _pool is None:
         if not DATABASE_URL:
-            raise ValueError("DATABASE_URL or POSTGRES_URL environment variable must be set")
-        _pool = await asyncpg.create_pool(
-            DATABASE_URL,
-            min_size=1,
-            max_size=10,
-            command_timeout=60
-        )
+            raise ValueError(
+                "DATABASE_URL or POSTGRES_URL environment variable must be set. "
+                "Please add POSTGRES_URL to your Vercel environment variables."
+            )
+        try:
+            _pool = await asyncpg.create_pool(
+                DATABASE_URL,
+                min_size=1,
+                max_size=10,
+                command_timeout=60
+            )
+        except Exception as e:
+            raise ValueError(
+                f"Failed to connect to Postgres database: {str(e)}. "
+                "Please check your POSTGRES_URL in Vercel environment variables."
+            ) from e
     return _pool
 
 async def init_db():
