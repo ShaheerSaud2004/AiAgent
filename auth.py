@@ -26,6 +26,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Hash a password."""
+    # Bcrypt has a 72-byte limit, so truncate if necessary
+    # Convert to bytes to check length properly
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        # Truncate to 72 bytes, but decode carefully to avoid cutting multi-byte characters
+        truncated = password_bytes[:72]
+        # Find the last complete character (don't cut in middle of UTF-8 sequence)
+        while truncated and truncated[-1] & 0x80 and not (truncated[-1] & 0x40):
+            truncated = truncated[:-1]
+        password = truncated.decode('utf-8', errors='ignore')
     return pwd_context.hash(password)
 
 
