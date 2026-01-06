@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CipherAI - Order Management Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1 class="logo">🤖 CipherAI</h1>
+            <p class="logo-subtitle">AI Order Management</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="#orders" class="nav-item" data-page="orders">
+                <span class="nav-icon">🍕</span>
+                <span class="nav-text">Orders</span>
+                <span class="nav-badge" id="pendingOrdersBadge">0</span>
+            </a>
+            <a href="#calls" class="nav-item" data-page="calls">
+                <span class="nav-icon">📞</span>
+                <span class="nav-text">Calls</span>
+            </a>
+            <a href="#analytics" class="nav-item" data-page="analytics">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a href="#settings" class="nav-item" data-page="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin</div>
+                    <div class="user-role">System Administrator</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">☰</button>
+                <h2 class="page-title" id="pageTitle">Dashboard</h2>
+            </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button class="btn-icon" id="refreshBtn" title="Refresh">
+                        <span>🔄</span>
+                    </button>
+                    <div class="notifications" id="notifications">
+                        <span>🔔</span>
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Page -->
+        <div class="page-content active" id="dashboardPage">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">📞</span>
+                        <span class="stat-label">Total Calls</span>
+                    </div>
+                    <div class="stat-value" id="totalCalls">-</div>
+                    <div class="stat-change positive">+12% from last week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">🍕</span>
+                        <span class="stat-label">Orders Today</span>
+                    </div>
+                    <div class="stat-value" id="ordersToday">-</div>
+                    <div class="stat-change positive" id="ordersChange">-</div>
+                </div>
+                <div class="stat-card highlight">
+                    <div class="stat-header">
+                        <span class="stat-icon">⏳</span>
+                        <span class="stat-label">Pending Orders</span>
+                    </div>
+                    <div class="stat-value" id="pendingOrders">-</div>
+                    <div class="stat-change">Requires attention</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">💰</span>
+                        <span class="stat-label">Avg Order Value</span>
+                    </div>
+                    <div class="stat-value" id="avgOrderValue">-</div>
+                    <div class="stat-change">Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">⏱️</span>
+                        <span class="stat-label">Avg Call Duration</span>
+                    </div>
+                    <div class="stat-value" id="avgDuration">-</div>
+                    <div class="stat-change">Last 30 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">✅</span>
+                        <span class="stat-label">Completion Rate</span>
+                    </div>
+                    <div class="stat-value" id="completionRate">-</div>
+                    <div class="stat-change positive">Success rate</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="actions-grid">
+                    <button class="action-btn" onclick="showPage('orders')">
+                        <span class="action-icon">🍕</span>
+                        <span class="action-text">View Orders</span>
+                    </button>
+                    <button class="action-btn" onclick="exportOrders()">
+                        <span class="action-icon">📥</span>
+                        <span class="action-text">Export Orders</span>
+                    </button>
+                    <button class="action-btn" onclick="showPage('calls')">
+                        <span class="action-icon">📞</span>
+                        <span class="action-text">View Calls</span>
+                    </button>
+                    <button class="action-btn" onclick="showPage('analytics')">
+                        <span class="action-icon">📈</span>
+                        <span class="action-text">View Analytics</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Orders Widget -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h3>Recent Orders</h3>
+                    <a href="#orders" onclick="showPage('orders')" class="widget-link">View All →</a>
+                </div>
+                <div class="widget-content">
+                    <div id="recentOrdersWidget">
+                        <div class="loading">Loading recent orders...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Page -->
+        <div class="page-content" id="ordersPage">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h2>Order Management</h2>
+                    <p class="page-description">Manage and track all incoming orders</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn btn-secondary" onclick="exportOrders()">
+                        <span>📥</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="statusFilter" onchange="filterOrders()">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Type:</label>
+                    <select id="typeFilter" onchange="filterOrders()">
+                        <option value="">All Types</option>
+                        <option value="delivery">Delivery</option>
+                        <option value="pickup">Pickup</option>
+                    </select>
+                </div>
+                <div class="filter-group filter-search">
+                    <input type="text" id="orderSearch" placeholder="Search orders..." onkeyup="handleOrderSearch(event)">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <!-- Orders Table -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Calls Page -->
+        <div class="page-content" id="callsPage">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h2>Call Logs</h2>
+                    <p class="page-description">View and manage all incoming calls</p>
+                </div>
+                <div class="page-header-right">
+                    <button class="btn btn-secondary" onclick="exportCalls()">
+                        <span>📥</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="filters-bar">
+                <div class="filter-group filter-search">
+                    <input type="text" id="callsSearch" placeholder="Search calls..." onkeyup="handleCallsSearch(event)">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Caller</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="callsTableBody">
+                        <tr>
+                            <td colspan="5" class="loading">Loading calls...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Analytics Page -->
+        <div class="page-content" id="analyticsPage">
+            <div class="page-header">
+                <h2>Analytics & Reports</h2>
+                <p class="page-description">Detailed insights and performance metrics</p>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-widget">
+                    <h3>Orders Over Time</h3>
+                    <canvas id="ordersChart"></canvas>
+                </div>
+                <div class="chart-widget">
+                    <h3>Orders by Status</h3>
+                    <canvas id="ordersStatusChart"></canvas>
+                </div>
+                <div class="chart-widget">
+                    <h3>Call Volume</h3>
+                    <canvas id="callsChart"></canvas>
+                </div>
+                <div class="chart-widget">
+                    <h3>Orders by Type</h3>
+                    <canvas id="ordersTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page-content" id="settingsPage">
+            <div class="page-header">
+                <h2>Settings</h2>
+                <p class="page-description">Manage your system configuration</p>
+            </div>
+
+            <div class="settings-sections">
+                <div class="settings-section">
+                    <h3>General Settings</h3>
+                    <div class="settings-group">
+                        <label>Restaurant Name</label>
+                        <input type="text" value="Nunzio's Pizza" readonly>
+                    </div>
+                    <div class="settings-group">
+                        <label>Phone Number</label>
+                        <input type="text" value="732-646-4595" readonly>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="settings-group">
+                        <label>
+                            <input type="checkbox" checked> Email notifications for new orders
+                        </label>
+                    </div>
+                    <div class="settings-group">
+                        <label>
+                            <input type="checkbox" checked> Sound alerts for new orders
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>System Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Version</label>
+                            <span>1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Status</label>
+                            <span class="status-badge active">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Order Detail Modal -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Order Details</h2>
+                <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="orderDetails">
+                <div class="loading">Loading order details...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bot Admin - Business Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .active-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+            font-weight: 600;
+        }
+        
+        .businesses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .business-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .business-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .business-card.active {
+            border: 3px solid #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .business-card.active::before {
+            content: "✓ ACTIVE";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #10b981;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        
+        .business-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .business-name {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .business-type {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        
+        .business-info {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .activate-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 15px;
+        }
+        
+        .activate-btn:hover {
+            background: #5568d3;
+        }
+        
+        .activate-btn.active {
+            background: #10b981;
+            cursor: default;
+        }
+        
+        .activate-btn.active:hover {
+            background: #10b981;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        
+        .test-info h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .test-info p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .phone-number {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #667eea;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Bot Admin</h1>
+            <p>Manage and switch between different AI business configurations</p>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div id="loading" class="loading">Loading businesses...</div>
+        
+        <div id="businesses-grid" class="businesses-grid" style="display: none;">
+            <!-- Business cards will be inserted here -->
+        </div>
+        
+        <div class="test-info">
+            <h2>📞 Test Your AI Bot</h2>
+            <p>Once you activate a business, you can test it immediately by calling:</p>
+            <div class="phone-number" id="phone-number">(732) 314-7497</div>
+            <p><strong>⚡ Changes take effect immediately!</strong> The AI will use the active business configuration for all new calls.</p>
+            <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                <strong>Current Settings:</strong><br>
+                <span id="current-settings">Loading...</span>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        let businesses = [];
+        let activeBusinessId = null;
+        
+        const icons = {
+            'pizza': '🍕',
+            'doctor': '👨‍⚕️',
+            'dentist': '🦷',
+            'cafe': '☕',
+            'bagel': '🥯'
+        };
+        
+        async function loadBusinesses() {
+            try {
+                const response = await fetch('/api/businesses');
+                const data = await response.json();
+                businesses = data.businesses || [];
+                
+                // Get active business
+                const activeResponse = await fetch('/api/businesses/active');
+                const activeData = await activeResponse.json();
+                activeBusinessId = activeData.business?.id || null;
+                
+                renderBusinesses();
+            } catch (error) {
+                showError('Failed to load businesses: ' + error.message);
+            }
+        }
+        
+        function renderBusinesses() {
+            const grid = document.getElementById('businesses-grid');
+            const loading = document.getElementById('loading');
+            
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+            
+            grid.innerHTML = businesses.map(business => {
+                const isActive = business.id === activeBusinessId;
+                const icon = icons[business.type] || '🏢';
+                const voice = business.voice || 'Polly.Matthew-Neural';
+                
+                return `
+                    <div class="business-card ${isActive ? 'active' : ''}" data-id="${business.id}">
+                        <div class="business-icon">${icon}</div>
+                        <div class="business-name">${business.name}</div>
+                        <div class="business-type">${business.type}</div>
+                        <div class="business-info">
+                            <strong>Assistant:</strong> ${business.assistant_name || 'N/A'}<br>
+                            <strong>Voice:</strong> ${voice.replace('Polly.', '').replace('-Neural', '')}<br>
+                            <strong>Phone:</strong> ${business.phone_number || 'N/A'}
+                        </div>
+                        <button 
+                            class="activate-btn ${isActive ? 'active' : ''}" 
+                            onclick="activateBusiness(${business.id})"
+                            ${isActive ? 'disabled' : ''}
+                        >
+                            ${isActive ? '✓ Active' : 'Activate'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update current settings display
+            updateCurrentSettings();
+        }
+        
+        function updateCurrentSettings() {
+            const active = businesses.find(b => b.id === activeBusinessId);
+            const settingsDiv = document.getElementById('current-settings');
+            if (active && settingsDiv) {
+                const voice = active.voice || 'Polly.Matthew-Neural';
+                settingsDiv.innerHTML = `
+                    <strong>${active.name}</strong> | 
+                    Assistant: ${active.assistant_name} | 
+                    Voice: ${voice.replace('Polly.', '').replace('-Neural', '')} | 
+                    Model: GPT-3.5-Turbo (Fast)
+                `;
+            } else if (settingsDiv) {
+                settingsDiv.innerHTML = 'No active business';
+            }
+        }
+        
+        async function activateBusiness(businessId) {
+            try {
+                showMessage('Activating business...', 'info');
+                
+                const response = await fetch(`/api/businesses/${businessId}/activate`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    activeBusinessId = businessId;
+                    const business = businesses.find(b => b.id === businessId);
+                    const businessName = business ? business.name : 'Business';
+                    showMessage(`✅ ${businessName} activated! The AI will now use this configuration immediately for all new calls.`, 'success');
+                    await loadBusinesses(); // Reload to update UI
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    showError(errorData.error || 'Failed to activate business');
+                }
+            } catch (error) {
+                showError('Error activating business: ' + error.message);
+            }
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type === 'error' ? 'error' : 'success';
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+        
+        // Load businesses on page load
+        loadBusinesses();
+        
+        // Refresh every 10 seconds to check for changes (faster updates)
+        setInterval(loadBusinesses, 10000);
+    </script>
+</body>
+</html>
+

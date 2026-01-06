@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Receptionist Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📞 AI Receptionist Dashboard</h1>
+            <p class="subtitle">Real-time call analytics and appointment management</p>
+        </header>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalCalls">-</div>
+                    <div class="stat-label">Total Calls</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="callsToday">-</div>
+                    <div class="stat-label">Calls Today</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="appointmentsBooked">-</div>
+                    <div class="stat-label">Appointments</div>
+                </div>
+            </div>
+            <div class="stat-card emergency">
+                <div class="stat-icon">🚨</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="emergencyCalls">-</div>
+                    <div class="stat-label">Emergencies</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="avgDuration">-</div>
+                    <div class="stat-label">Avg Duration</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="newPatients">-</div>
+                    <div class="stat-label">New Patients</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <h2>📈 Trends & Analytics</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Daily Calls (Last 30 Days)</h3>
+                    <canvas id="callsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Daily Appointments (Last 30 Days)</h3>
+                    <canvas id="appointmentsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('calls')">Recent Calls</button>
+            <button class="tab-btn" onclick="showTab('appointments')">Appointments</button>
+        </div>
+
+        <!-- Calls Tab -->
+        <div id="callsTab" class="tab-content active">
+            <div class="table-controls">
+                <div class="search-box">
+                    <input type="text" id="callsSearch" placeholder="Search by phone number..." onkeyup="handleCallsSearch(event)">
+                    <button class="btn btn-primary" onclick="exportCalls()">📥 Export CSV</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Caller</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Emergency</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="callsTableBody">
+                        <tr>
+                            <td colspan="6" class="loading">Loading calls...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Appointments Tab -->
+        <div id="appointmentsTab" class="tab-content">
+            <div class="table-controls">
+                <div class="search-box">
+                    <input type="text" id="appointmentsSearch" placeholder="Search by phone, reason, insurance..." onkeyup="handleAppointmentsSearch(event)">
+                    <button class="btn btn-primary" onclick="exportAppointments()">📥 Export CSV</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Caller</th>
+                            <th>Patient Type</th>
+                            <th>Reason</th>
+                            <th>Insurance</th>
+                            <th>Preferred Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading appointments...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Call Detail Modal -->
+        <div id="callModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Call Details</h2>
+                <div id="callDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
+
