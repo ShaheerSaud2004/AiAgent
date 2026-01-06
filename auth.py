@@ -31,11 +31,10 @@ def get_password_hash(password: str) -> str:
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
         # Truncate to 72 bytes safely
-        # Go backwards from 72 to find a valid UTF-8 boundary
-        truncated = password_bytes[:72]
         # Remove any incomplete UTF-8 sequences at the end
+        truncated = password_bytes[:72]
         # UTF-8 continuation bytes start with 10xxxxxx (0x80-0xBF)
-        # We need to find the last byte that starts a character (starts with 0xxxxxxx or 11xxxxxx)
+        # We need to find the last byte that starts a character
         while truncated:
             last_byte = truncated[-1]
             # If it's a continuation byte (10xxxxxx), remove it
@@ -43,26 +42,16 @@ def get_password_hash(password: str) -> str:
                 truncated = truncated[:-1]
             else:
                 break
+        # Decode the truncated bytes
         password = truncated.decode('utf-8', errors='ignore')
+        # Double-check: re-encode to make sure it's <= 72 bytes
+        password_bytes = password.encode('utf-8')
+        if len(password_bytes) > 72:
+            # If still too long, truncate more aggressively
+            password = password_bytes[:72].decode('utf-8', errors='ignore')
     
-    # Pass the (possibly truncated) password to bcrypt
-    # Use hash with explicit handling
-    try:
-        return pwd_context.hash(password)
-    except ValueError as e:
-        # If still too long (shouldn't happen, but just in case)
-        if "longer than 72 bytes" in str(e):
-            # Force truncate to 72 bytes as bytes
-            password_bytes = password.encode('utf-8')[:72]
-            # Find safe boundary
-            while password_bytes:
-                try:
-                    password = password_bytes.decode('utf-8')
-                    break
-                except UnicodeDecodeError:
-                    password_bytes = password_bytes[:-1]
-            return pwd_context.hash(password)
-        raise
+    # Now hash - password is guaranteed to be <= 72 bytes
+    return pwd_context.hash(password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
