@@ -63,12 +63,21 @@ async def ensure_db_initialized():
     global _db_initialized
     if not _db_initialized:
         try:
+            # Initialize database connection pool first
+            from database import get_pool
+            pool = await get_pool()
+            logger.info("Database pool created successfully")
             await init_db()
+            logger.info("Database tables initialized")
             from prompts import load_active_business
             await load_active_business()
+            logger.info("Active business loaded")
             _db_initialized = True
         except Exception as e:
             logger.error(f"Database init error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Don't re-raise here - let endpoints handle it
 
 @app.on_event("startup")
 async def startup():

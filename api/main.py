@@ -18,4 +18,14 @@ mangum_handler = Mangum(app, lifespan="off")
 
 # Export handler - Vercel will auto-detect Python
 def handler(event, context):
-    return mangum_handler(event, context)
+    try:
+        return mangum_handler(event, context)
+    except Exception as e:
+        import traceback
+        error_msg = f"Handler error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)  # This will show in Vercel logs
+        return {
+            "statusCode": 500,
+            "headers": {"Content-Type": "application/json"},
+            "body": error_msg
+        }
