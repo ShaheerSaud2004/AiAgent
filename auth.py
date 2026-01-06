@@ -8,8 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import aiosqlite
-from database import DB_PATH
+from database import get_pool
 
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
@@ -44,24 +43,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 async def get_user_by_email(email: str) -> Optional[dict]:
     """Get user by email."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM users WHERE email = ?", (email,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        return dict(row) if row else None
 
 
 async def get_user_by_id(user_id: int) -> Optional[dict]:
     """Get user by ID."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM users WHERE id = ?", (user_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+        return dict(row) if row else None
 
 
 async def authenticate_user(email: str, password: str) -> Optional[dict]:
@@ -107,4 +100,3 @@ async def get_current_organization(user: dict = Depends(get_current_user)) -> in
             detail="User not associated with an organization"
         )
     return org_id
-

@@ -1,21 +1,20 @@
 """
 Organization management for multi-tenant SaaS.
 """
-import aiosqlite
 from typing import Dict, List, Optional
-from database import DB_PATH
+from database import get_pool
 from auth import get_password_hash
 
 
 async def create_organization(name: str, subdomain: str = None) -> int:
     """Create a new organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            "INSERT INTO organizations (name, subdomain) VALUES (?, ?)",
-            (name, subdomain or name.lower().replace(" ", "-"))
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        org_id = await conn.fetchval(
+            "INSERT INTO organizations (name, subdomain) VALUES ($1, $2) RETURNING id",
+            name, subdomain or name.lower().replace(" ", "-")
         )
-        await db.commit()
-        return cursor.lastrowid
+        return org_id
 
 
 async def create_user(
@@ -27,54 +26,49 @@ async def create_user(
 ) -> int:
     """Create a new user."""
     password_hash = get_password_hash(password)
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        user_id = await conn.fetchval(
             """INSERT INTO users (email, password_hash, organization_id, full_name, role)
-               VALUES (?, ?, ?, ?, ?)""",
-            (email, password_hash, organization_id, full_name or email.split("@")[0], role)
+               VALUES ($1, $2, $3, $4, $5) RETURNING id""",
+            email, password_hash, organization_id, full_name or email.split("@")[0], role
         )
-        await db.commit()
-        return cursor.lastrowid
+        return user_id
 
 
 async def get_organization(organization_id: int) -> Optional[Dict]:
     """Get organization by ID."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM organizations WHERE id = ?", (organization_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM organizations WHERE id = $1", organization_id)
+        return dict(row) if row else None
 
 
 async def get_organization_users(organization_id: int) -> List[Dict]:
     """Get all users in an organization."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT id, email, full_name, role, is_active, created_at FROM users WHERE organization_id = ?",
-            (organization_id,)
-        ) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, email, full_name, role, is_active, created_at FROM users WHERE organization_id = $1",
+            organization_id
+        )
+        return [dict(row) for row in rows]
 
 
 async def get_organization_by_phone(phone_number: str) -> Optional[int]:
     """Get organization ID by phone number (from businesses table)."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        org_id = await conn.fetchval(
             """SELECT organization_id FROM businesses 
-               WHERE phone_number = ? AND is_active = 1 
+               WHERE phone_number = $1 AND is_active = true 
                LIMIT 1""",
-            (phone_number,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row:
-                return row[0]
+            phone_number
+        )
+        
+        if org_id:
+            return org_id
         
         # Fallback: get first organization (for development)
-        async with db.execute("SELECT id FROM organizations LIMIT 1") as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else None
-
+        org_id = await conn.fetchval("SELECT id FROM organizations LIMIT 1")
+        return org_id
