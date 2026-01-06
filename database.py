@@ -159,24 +159,45 @@ async def init_db():
         """)
         
         # Add organization_id to existing tables if they don't have it (migration)
+        # Postgres doesn't support IF NOT EXISTS for ALTER TABLE, so we check first
         try:
-            await conn.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS organization_id INTEGER")
+            result = await conn.fetchval("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'businesses' AND column_name = 'organization_id'
+            """)
+            if not result:
+                await conn.execute("ALTER TABLE businesses ADD COLUMN organization_id INTEGER")
         except:
             pass
         
         try:
-            await conn.execute("ALTER TABLE calls ADD COLUMN IF NOT EXISTS organization_id INTEGER")
+            result = await conn.fetchval("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'calls' AND column_name = 'organization_id'
+            """)
+            if not result:
+                await conn.execute("ALTER TABLE calls ADD COLUMN organization_id INTEGER")
         except:
             pass
         
         try:
-            await conn.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS organization_id INTEGER")
+            result = await conn.fetchval("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'orders' AND column_name = 'organization_id'
+            """)
+            if not result:
+                await conn.execute("ALTER TABLE orders ADD COLUMN organization_id INTEGER")
         except:
             pass
         
         # Add voice column if it doesn't exist (for existing databases)
         try:
-            await conn.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS voice VARCHAR(100) DEFAULT 'Polly.Matthew-Neural'")
+            result = await conn.fetchval("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'businesses' AND column_name = 'voice'
+            """)
+            if not result:
+                await conn.execute("ALTER TABLE businesses ADD COLUMN voice VARCHAR(100) DEFAULT 'Polly.Matthew-Neural'")
         except Exception as e:
             pass  # Column already exists or other error
         
@@ -228,6 +249,9 @@ If item in MENU, it exists. Match menu names exactly."""
                     "INSERT INTO organizations (name, subdomain) VALUES ($1, $2) RETURNING id",
                     "Default Organization", "default"
                 )
+                if not default_org_id:
+                    # If still None, try to get it again
+                    default_org_id = await conn.fetchval("SELECT id FROM organizations WHERE name = 'Default Organization' LIMIT 1")
             
             await conn.execute("""
                 INSERT INTO businesses (organization_id, name, type, is_active, greeting, assistant_name, system_prompt, menu_reference, phone_number, email, address, voice)
@@ -407,23 +431,24 @@ async def migrate_existing_data_to_org():
                 "Default Organization", "default"
             )
             
-            # Update existing businesses
-            await conn.execute(
-                "UPDATE businesses SET organization_id = $1 WHERE organization_id IS NULL",
-                default_org_id
-            )
-            
-            # Update existing calls
-            await conn.execute(
-                "UPDATE calls SET organization_id = $1 WHERE organization_id IS NULL",
-                default_org_id
-            )
-            
-            # Update existing orders
-            await conn.execute(
-                "UPDATE orders SET organization_id = $1 WHERE organization_id IS NULL",
-                default_org_id
-            )
+            if default_org_id:
+                # Update existing businesses
+                await conn.execute(
+                    "UPDATE businesses SET organization_id = $1 WHERE organization_id IS NULL",
+                    default_org_id
+                )
+                
+                # Update existing calls
+                await conn.execute(
+                    "UPDATE calls SET organization_id = $1 WHERE organization_id IS NULL",
+                    default_org_id
+                )
+                
+                # Update existing orders
+                await conn.execute(
+                    "UPDATE orders SET organization_id = $1 WHERE organization_id IS NULL",
+                    default_org_id
+                )
 
 
 async def save_call_start(call_sid: str, caller_phone: str, organization_id: int = None) -> int:
@@ -662,27 +687,27 @@ async def get_chart_data(days: int = 30) -> Dict:
     pool = await get_pool()
     async with pool.acquire() as conn:
         # Daily calls for last N days
-        daily_calls = await conn.fetch("""
+        daily_calls = await conn.fetch(f"""
             SELECT 
                 DATE(start_time) as date,
-                COUNT(*) as count,
-                SUM(CASE WHEN is_emergency = true THEN 1 ELSE 0 END) as emergencies
+                COUNT(*)::int as count,
+                SUM(CASE WHEN is_emergency = true THEN 1 ELSE 0 END)::int as emergencies
             FROM calls
-            WHERE start_time >= NOW() - INTERVAL '%s days'
+            WHERE start_time >= NOW() - INTERVAL '{days} days'
             GROUP BY DATE(start_time)
             ORDER BY date ASC
-        """ % days)
+        """)
         
         # Daily appointments
-        daily_appointments = await conn.fetch("""
+        daily_appointments = await conn.fetch(f"""
             SELECT 
                 DATE(created_at) as date,
-                COUNT(*) as count
+                COUNT(*)::int as count
             FROM appointments
-            WHERE created_at >= NOW() - INTERVAL '%s days'
+            WHERE created_at >= NOW() - INTERVAL '{days} days'
             GROUP BY DATE(created_at)
             ORDER BY date ASC
-        """ % days)
+        """)
         
         return {
             "daily_calls": [{"date": str(row["date"]), "count": row["count"], "emergencies": row["emergencies"]} for row in daily_calls],
@@ -767,24 +792,29 @@ async def get_orders(limit: int = 50, status: Optional[str] = None, order_type: 
     """Get orders with optional filtering."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        query = "SELECT * FROM orders WHERE 1=1"
-        params = []
-        param_num = 1
-        
-        if status:
-            query += f" AND order_status = ${param_num}"
-            params.append(status)
-            param_num += 1
-        
-        if order_type:
-            query += f" AND order_type = ${param_num}"
-            params.append(order_type)
-            param_num += 1
-        
-        query += f" ORDER BY created_at DESC LIMIT ${param_num}"
-        params.append(limit)
-        
-        rows = await conn.fetch(query, *params)
+        if status and order_type:
+            rows = await conn.fetch("""
+                SELECT * FROM orders 
+                WHERE order_status = $1 AND order_type = $2
+                ORDER BY created_at DESC LIMIT $3
+            """, status, order_type, limit)
+        elif status:
+            rows = await conn.fetch("""
+                SELECT * FROM orders 
+                WHERE order_status = $1
+                ORDER BY created_at DESC LIMIT $2
+            """, status, limit)
+        elif order_type:
+            rows = await conn.fetch("""
+                SELECT * FROM orders 
+                WHERE order_type = $1
+                ORDER BY created_at DESC LIMIT $2
+            """, order_type, limit)
+        else:
+            rows = await conn.fetch("""
+                SELECT * FROM orders 
+                ORDER BY created_at DESC LIMIT $1
+            """, limit)
         return [dict(row) for row in rows]
 
 
@@ -922,23 +952,32 @@ async def update_business(business_id: int, updates: Dict):
     """Update business configuration."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        fields = []
+        allowed_keys = ['name', 'type', 'greeting', 'assistant_name', 'system_prompt', 
+                       'menu_reference', 'phone_number', 'email', 'address', 'config_json', 'voice']
+        
+        # Build update query dynamically
+        set_clauses = []
         values = []
         param_num = 1
+        
         for key, value in updates.items():
-            if key in ['name', 'type', 'greeting', 'assistant_name', 'system_prompt', 
-                      'menu_reference', 'phone_number', 'email', 'address', 'config_json', 'voice']:
-                fields.append(f"{key} = ${param_num}")
+            if key in allowed_keys:
+                set_clauses.append(f"{key} = ${param_num}")
                 values.append(value)
                 param_num += 1
         
-        if fields:
+        if set_clauses:
+            set_clauses.append(f"updated_at = ${param_num}")
+            values.append(datetime.now())
+            param_num += 1
+            
             values.append(business_id)
-            await conn.execute(f"""
+            query = f"""
                 UPDATE businesses 
-                SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP
+                SET {', '.join(set_clauses)}
                 WHERE id = ${param_num}
-            """, *values)
+            """
+            await conn.execute(query, *values)
 
 
 async def get_business(business_id: int) -> Optional[Dict]:
