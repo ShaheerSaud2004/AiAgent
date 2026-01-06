@@ -1,27 +1,21 @@
 import sys
 import os
 
-# Add parent directory to path
+# Add parent to path
 parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent not in sys.path:
-    sys.path.insert(0, parent)
+sys.path.insert(0, parent)
 
-# Import Mangum and FastAPI app
-# Note: We import from the root main.py file
-from mangum import Mangum
+# Import using importlib to avoid naming conflict
 import importlib.util
-
-# Load the root main.py module
 spec = importlib.util.spec_from_file_location("app_main", os.path.join(parent, "main.py"))
 app_main = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(app_main)
-
-# Get the FastAPI app
 app = app_main.app
 
-# Create Mangum adapter
-mangum_adapter = Mangum(app, lifespan="off")
+# Use Mangum
+from mangum import Mangum
+mangum_handler = Mangum(app, lifespan="off")
 
-# Handler function for Vercel
+# Export handler - Vercel will auto-detect Python
 def handler(event, context):
-    return mangum_adapter(event, context)
+    return mangum_handler(event, context)
