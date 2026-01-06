@@ -1,20 +1,27 @@
 import sys
 import os
 
-# Add parent directory
+# Add parent directory to path
 parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent not in sys.path:
     sys.path.insert(0, parent)
 
-# Import everything we need
+# Import Mangum and FastAPI app
+# Note: We import from the root main.py file
 from mangum import Mangum
-from main import app
+import importlib.util
 
-# Create the adapter
+# Load the root main.py module
+spec = importlib.util.spec_from_file_location("app_main", os.path.join(parent, "main.py"))
+app_main = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(app_main)
+
+# Get the FastAPI app
+app = app_main.app
+
+# Create Mangum adapter
 mangum_adapter = Mangum(app, lifespan="off")
 
-# Handler function - must be at module level
+# Handler function for Vercel
 def handler(event, context):
-    """AWS Lambda handler for Vercel."""
-    response = mangum_adapter(event, context)
-    return response
+    return mangum_adapter(event, context)
