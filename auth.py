@@ -29,10 +29,14 @@ def get_password_hash(password: str) -> str:
     # Bcrypt has a 72-byte limit, so truncate if necessary
     # Convert to bytes to check length properly
     password_bytes = password.encode('utf-8')
+    
+    # If password is too long, truncate to exactly 72 bytes
+    # We need to be careful not to break UTF-8 sequences
     if len(password_bytes) > 72:
-        # Truncate to 72 bytes safely
-        # Remove any incomplete UTF-8 sequences at the end
+        # Truncate to 72 bytes
         truncated = password_bytes[:72]
+        
+        # Remove any incomplete UTF-8 sequences at the end
         # UTF-8 continuation bytes start with 10xxxxxx (0x80-0xBF)
         # We need to find the last byte that starts a character
         while truncated:
@@ -42,15 +46,27 @@ def get_password_hash(password: str) -> str:
                 truncated = truncated[:-1]
             else:
                 break
-        # Decode the truncated bytes
+        
+        # Decode the truncated bytes - this is safe now
         password = truncated.decode('utf-8', errors='ignore')
-        # Double-check: re-encode to make sure it's <= 72 bytes
-        password_bytes = password.encode('utf-8')
-        if len(password_bytes) > 72:
-            # If still too long, truncate more aggressively
-            password = password_bytes[:72].decode('utf-8', errors='ignore')
+        
+        # Final safety check: ensure the decoded password, when re-encoded, is <= 72 bytes
+        # If not, truncate the string character by character until it fits
+        while True:
+            test_bytes = password.encode('utf-8')
+            if len(test_bytes) <= 72:
+                break
+            # Remove last character and try again
+            if len(password) > 0:
+                password = password[:-1]
+            else:
+                # Edge case: empty string somehow encodes to > 72 bytes (shouldn't happen)
+                password = ""
+                break
     
-    # Now hash - password is guaranteed to be <= 72 bytes
+    # Now hash - password is guaranteed to be <= 72 bytes when encoded
+    # But passlib might check the original string, so let's pass the truncated version
+    # Actually, passlib checks the byte length of what we pass, so we're good
     return pwd_context.hash(password)
 
 
