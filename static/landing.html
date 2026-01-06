@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Phone Receptionist - Never Miss a Call</title>
+    <title>CipherAI - AI Phone Receptionist</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,6 +30,7 @@
             background: var(--slate-dark);
             color: var(--white);
             line-height: 1.6;
+            overflow-x: hidden;
         }
         
         .navbar {
@@ -46,10 +47,41 @@
             border-bottom: 1px solid rgba(59, 130, 246, 0.1);
         }
         
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: white;
+            position: relative;
+        }
+        
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: var(--blue);
+            border-radius: 8px;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+        
         .logo {
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--blue);
+            color: var(--white);
+            letter-spacing: -0.02em;
         }
         
         .nav-links {
@@ -94,21 +126,70 @@
             padding: 8rem 5% 4rem;
             max-width: 900px;
             margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(80px);
+            animation: pulse 8s ease-in-out infinite;
+        }
+        
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            right: 10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: pulse 10s ease-in-out infinite reverse;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
         }
         
         .hero h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
             font-weight: 700;
             line-height: 1.1;
             margin-bottom: 1.5rem;
             color: var(--white);
+            letter-spacing: -0.03em;
         }
         
         .hero p {
-            font-size: clamp(1.125rem, 2vw, 1.25rem);
+            font-size: clamp(1.125rem, 2vw, 1.375rem);
             color: var(--gray);
             margin-bottom: 2.5rem;
-            max-width: 600px;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
         }
         
         .cta-buttons {
@@ -137,6 +218,8 @@
         
         .btn-primary:hover {
             background: var(--blue-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
         }
         
         .btn-secondary {
@@ -148,6 +231,7 @@
         .btn-secondary:hover {
             border-color: var(--blue);
             color: var(--blue);
+            background: rgba(59, 130, 246, 0.05);
         }
         
         .features {
@@ -336,7 +420,10 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo">AI Receptionist</div>
+        <div class="logo-container">
+            <div class="logo-icon">C</div>
+            <div class="logo">CipherAI</div>
+        </div>
         <div class="nav-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
@@ -346,11 +433,13 @@
     </nav>
     
     <section class="hero">
-        <h1>Never Miss a Call.<br>Never Lose an Order.</h1>
-        <p>24/7 intelligent phone receptionist that answers calls, takes orders, and handles customer inquiries—all powered by AI.</p>
-        <div class="cta-buttons">
-            <a href="/signup" class="btn btn-primary">Start Free Trial</a>
-            <a href="#features" class="btn btn-secondary">Learn More</a>
+        <div class="hero-content">
+            <h1>Never Miss a Call.<br>Never Lose an Order.</h1>
+            <p>24/7 intelligent phone receptionist that answers calls, takes orders, and handles customer inquiries—all powered by AI.</p>
+            <div class="cta-buttons">
+                <a href="/signup" class="btn btn-primary">Start Free Trial</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
+            </div>
         </div>
     </section>
     
@@ -439,12 +528,12 @@
     
     <section class="cta-section">
         <h2>Ready to Transform Your Phone System?</h2>
-        <p>Join businesses already using AI Phone Receptionist to never miss a call.</p>
+        <p>Join businesses already using CipherAI to never miss a call.</p>
         <a href="/signup" class="btn">Start Your Free Trial</a>
     </section>
     
     <footer>
-        <p>&copy; 2024 AI Phone Receptionist. All rights reserved.</p>
+        <p>&copy; 2024 CipherAI. All rights reserved.</p>
     </footer>
 </body>
 </html>

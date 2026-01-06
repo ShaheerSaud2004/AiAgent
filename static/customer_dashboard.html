@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - AI Phone Receptionist</title>
+    <title>Dashboard - CipherAI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -43,10 +43,30 @@
             z-index: 100;
         }
         
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: white;
+        }
+        
         .navbar h1 {
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--blue);
+            color: var(--white);
+            letter-spacing: -0.02em;
         }
         
         .navbar-right {
@@ -218,7 +238,10 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1>AI Receptionist</h1>
+        <div class="logo-container">
+            <div class="logo-icon">C</div>
+            <h1>CipherAI</h1>
+        </div>
         <div class="navbar-right">
             <span class="user-info" id="userInfo">Loading...</span>
             <a href="/" class="logout-btn" onclick="logout()">Logout</a>
